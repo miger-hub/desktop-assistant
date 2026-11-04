@@ -1,0 +1,127 @@
+{
+  "name": "desktop-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "简单、本地优先的跨平台个人桌面助手",
+  "author": "desktop-assistant",
+  "license": "MIT",
+  "main": "./out/main/index.js",
+  "packageManager": "pnpm@10.18.0",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "pnpm run typecheck && electron-vite build",
+    "build:win": "pnpm run build && electron-builder --win",
+    "build:win:portable": "pnpm run build && electron-builder --win portable",
+    "build:win:unpacked": "pnpm run build && electron-builder --win --dir",
+    "build:win:cross": "pnpm run build && electron-builder --win --dir -c.win.signAndEditExecutable=false",
+    "build:linux": "pnpm run build && electron-builder --linux",
+    "build:linux:dir": "pnpm run build && electron-builder --linux --dir",
+    "build:mac": "pnpm run build && electron-builder --mac",
+    "start": "electron-vite preview",
+    "typecheck": "pnpm run typecheck:node && pnpm run typecheck:web",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "vue-tsc --noEmit -p tsconfig.web.json",
+    "test": "node scripts/test.mjs",
+    "test:node": "vitest run",
+    "test:watch": "node scripts/test.mjs --watch"
+  },
+  "dependencies": {
+    "@mdi/font": "^7.4.47",
+    "better-sqlite3": "^13.0.3",
+    "fast-xml-parser": "^5.11.2",
+    "fflate": "^0.8.3",
+    "vue": "^3.5.43",
+    "vuetify": "^4.2.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^24.9.0",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "electron": "^44.4.2",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^5.0.0",
+    "typescript": "~5.9.3",
+    "vite": "^7.3.6",
+    "vitest": "^5.0.1",
+    "vue-tsc": "^3.3.11"
+  },
+  "build": {
+    "appId": "com.desktopassistant.app",
+    "productName": "Desktop Assistant",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "asarUnpack": [
+      "**/*.node"
+    ],
+    "npmRebuild": false,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName}-${version}-${arch}-setup.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "category": "Utility",
+      "maintainer": "desktop-assistant",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Desktop Assistant",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

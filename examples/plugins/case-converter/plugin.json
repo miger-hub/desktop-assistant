@@ -1,0 +1,101 @@
+{
+  "id": "com.desktopassistant.case-converter",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "input": "text",
+  "result": "text",
+  "entry": "main.js",
+  "locales": {
+    "zh-CN": {
+      "name": "大小写转换",
+      "description": "按选项转换文本大小写：大写、小写、单词首字母、句首或反转",
+      "keywords": [
+        "大小写",
+        "大写",
+        "小写",
+        "首字母",
+        "case",
+        "upper",
+        "lower",
+        "title",
+        "sentence",
+        "toggle"
+      ],
+      "options": {
+        "mode": "转换方式",
+        "trim": "去除首尾空白"
+      },
+      "optionValues": {
+        "mode:upper": "转大写",
+        "mode:lower": "转小写",
+        "mode:title": "单词首字母大写",
+        "mode:sentence": "句首大写",
+        "mode:toggle": "反转大小写"
+      }
+    },
+    "zh-TW": {
+      "name": "大小寫轉換",
+      "description": "依選項轉換文字大小寫：大寫、小寫、單字首字母、句首或反轉",
+      "keywords": [
+        "大小寫",
+        "大寫",
+        "小寫",
+        "首字母",
+        "case",
+        "upper",
+        "lower",
+        "title",
+        "sentence",
+        "toggle"
+      ],
+      "options": {
+        "mode": "轉換方式",
+        "trim": "去除前後空白"
+      },
+      "optionValues": {
+        "mode:upper": "轉大寫",
+        "mode:lower": "轉小寫",
+        "mode:title": "單字首字母大寫",
+        "mode:sentence": "句首大寫",
+        "mode:toggle": "反轉大小寫"
+      }
+    },
+    "en": {
+      "name": "Case Converter",
+      "description": "Convert text case: upper, lower, title, sentence or toggle",
+      "keywords": [
+        "case",
+        "upper",
+        "lower",
+        "title",
+        "sentence",
+        "toggle",
+        "capitalize"
+      ],
+      "options": {
+        "mode": "Mode",
+        "trim": "Trim whitespace"
+      },
+      "optionValues": {
+        "mode:upper": "UPPERCASE",
+        "mode:lower": "lowercase",
+        "mode:title": "Title Case",
+        "mode:sentence": "Sentence case",
+        "mode:toggle": "tOGGLE cASE"
+      }
+    }
+  },
+  "options": [
+    {
+      "key": "mode",
+      "type": "select",
+      "default": "upper",
+      "values": ["upper", "lower", "title", "sentence", "toggle"]
+    },
+    {
+      "key": "trim",
+      "type": "switch",
+      "default": true
+    }
+  ]
+}

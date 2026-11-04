@@ -1,0 +1,102 @@
+{
+  "id": "com.desktopassistant.snake-camel-converter",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "input": "text",
+  "result": "text",
+  "entry": "main.js",
+  "locales": {
+    "zh-CN": {
+      "name": "下划线与驼峰转换",
+      "description": "在 snake_case、camelCase、PascalCase、kebab-case 之间转换；空白分隔多个单元，逐行输出",
+      "keywords": [
+        "下划线",
+        "驼峰",
+        "蛇形",
+        "短横线",
+        "命名",
+        "snake",
+        "camel",
+        "pascal",
+        "kebab",
+        "underscore",
+        "convert",
+        "换行",
+        "line",
+        "unit"
+      ],
+      "options": {
+        "mode": "转换方式"
+      },
+      "optionValues": {
+        "mode:toCamel": "转驼峰 camelCase",
+        "mode:toSnake": "转下划线 snake_case",
+        "mode:toPascal": "转大驼峰 PascalCase",
+        "mode:toKebab": "转短横线 kebab-case"
+      }
+    },
+    "zh-TW": {
+      "name": "底線與駝峰轉換",
+      "description": "在 snake_case、camelCase、PascalCase、kebab-case 之間轉換；空白分隔多個單元，逐行輸出",
+      "keywords": [
+        "底線",
+        "駝峰",
+        "蛇形",
+        "短橫線",
+        "命名",
+        "snake",
+        "camel",
+        "pascal",
+        "kebab",
+        "underscore",
+        "convert",
+        "換行",
+        "line",
+        "unit"
+      ],
+      "options": {
+        "mode": "轉換方式"
+      },
+      "optionValues": {
+        "mode:toCamel": "轉駝峰 camelCase",
+        "mode:toSnake": "轉底線 snake_case",
+        "mode:toPascal": "轉大駝峰 PascalCase",
+        "mode:toKebab": "轉短橫線 kebab-case"
+      }
+    },
+    "en": {
+      "name": "Snake / Camel Converter",
+      "description": "Convert between snake_case, camelCase, PascalCase and kebab-case; whitespace separates units and each result is on its own line",
+      "keywords": [
+        "snake",
+        "camel",
+        "pascal",
+        "kebab",
+        "case",
+        "naming",
+        "underscore",
+        "convert",
+        "whitespace",
+        "line",
+        "unit"
+      ],
+      "options": {
+        "mode": "Mode"
+      },
+      "optionValues": {
+        "mode:toCamel": "camelCase",
+        "mode:toSnake": "snake_case",
+        "mode:toPascal": "PascalCase",
+        "mode:toKebab": "kebab-case"
+      }
+    }
+  },
+  "options": [
+    {
+      "key": "mode",
+      "type": "select",
+      "default": "toCamel",
+      "values": ["toCamel", "toSnake", "toPascal", "toKebab"]
+    }
+  ]
+}

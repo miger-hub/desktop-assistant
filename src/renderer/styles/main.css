@@ -1,0 +1,1144 @@
+/**
+ * 只保留应用自身的布局与少量样式。
+ * 颜色统一取 Vuetify 主题变量（rgb(var(--v-theme-*)）），不再自定义一套配色。
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  overflow: hidden;
+}
+
+/* Vuetify 的 v-app 负责主题类与背景色，这里只接管高度与纵向布局 */
+.v-application {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.v-application__wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.app-body {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+}
+
+/* ---------- 自定义标题栏（无系统边框窗口） ---------- */
+
+.titlebar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  height: 34px;
+  padding-left: 10px;
+  background: rgb(var(--v-theme-surface));
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  user-select: none;
+  /* 整条标题栏可拖动窗口 */
+  -webkit-app-region: drag;
+}
+
+.titlebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+}
+
+.titlebar__spacer {
+  flex: 1;
+}
+
+.titlebar__actions {
+  display: flex;
+  height: 100%;
+  /* 按钮不参与拖动，否则点不到 */
+  -webkit-app-region: no-drag;
+}
+
+.titlebar__btn {
+  width: 44px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.titlebar__btn:hover {
+  background: rgba(var(--v-theme-on-surface), 0.08);
+}
+
+.titlebar__btn--close:hover {
+  background: rgb(var(--v-theme-error));
+  color: rgb(var(--v-theme-on-error));
+}
+
+/* ---------- 侧边栏 ---------- */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 6px;
+  background: rgb(var(--v-theme-surface));
+  border-right: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  overflow: auto;
+  outline: none;
+}
+
+/* 侧边栏聚焦（Ctrl/Cmd + 方向键）：沿用工作区板块聚焦的内描边 */
+.sidebar.is-focused {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: -2px;
+}
+
+/*
+ * ↑↓ 选中的菜单 / 快捷入口：和「当前所在页面」的背景高亮区分开，
+ * 用一圈内描边标出键盘光标。
+ */
+.sidebar .v-list-item.is-cursor {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: -2px;
+}
+
+.sidebar__list {
+  background: transparent;
+}
+
+.sidebar__shortcut {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+}
+
+/* ---------- 快捷入口 ---------- */
+
+/* ---------- 工具 / 插件 ---------- */
+
+.tools__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.tools__card {
+  cursor: pointer;
+}
+
+.tool-shell__options {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tool-shell__option {
+  flex: 0 0 160px;
+}
+
+.tool-shell__text {
+  max-height: 420px;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  border-radius: 8px;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tool-shell__table {
+  max-height: 420px;
+  overflow: auto;
+}
+
+.tool-shell__th {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.tool-shell__search {
+  flex-wrap: wrap;
+  margin: 0 16px 10px;
+}
+
+.tool-shell__search .v-input {
+  flex: 1 1 220px;
+}
+
+.tool-shell__search-count {
+  min-width: 70px;
+  text-align: right;
+}
+
+.tool-highlight {
+  padding: 0 1px;
+  border-radius: 2px;
+  background: rgba(var(--v-theme-primary), 0.32);
+  color: inherit;
+}
+
+.is-match {
+  background: rgba(var(--v-theme-primary), 0.08);
+}
+
+.is-active-match {
+  background: rgba(var(--v-theme-primary), 0.2) !important;
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: -2px;
+}
+
+.tool-shell__null {
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.tool-shell__empty {
+  opacity: 0.6;
+}
+
+.tool-shell__text-lines {
+  max-height: 480px;
+  padding: 8px;
+  overflow: auto;
+  border-radius: 8px;
+  background: rgba(var(--v-theme-on-surface), 0.04);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.tool-shell__text-line {
+  padding: 1px 4px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tool-tree {
+  max-height: 480px;
+  overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.tool-tree__branch {
+  margin: 2px 0;
+}
+
+.tool-tree__summary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.tool-tree__summary:hover {
+  background: rgba(var(--v-theme-on-surface), 0.05);
+}
+
+.tool-tree__children {
+  margin-left: 14px;
+  padding-left: 8px;
+  border-left: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.tool-tree__leaf {
+  display: flex;
+  gap: 6px;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.tool-tree__key {
+  font-weight: 600;
+}
+
+.tool-tree__colon {
+  opacity: 0.5;
+}
+
+.tool-tree__type {
+  font-size: 10px;
+  opacity: 0.55;
+}
+
+.tool-tree__value--null {
+  font-style: italic;
+  opacity: 0.65;
+}
+
+.sidebar__section {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+.sidebar__section-head {
+  padding: 0 10px 4px;
+  font-size: 12px;
+}
+
+.sidebar__section-empty {
+  margin: 0;
+  padding: 4px 10px 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* 目标已经不存在的快捷入口弱化显示（点击会给出错误提示） */
+.sidebar .v-list-item.is-missing {
+  opacity: 0.6;
+}
+
+/*
+ * 设置入口固定在左下角，用一条分隔线和主菜单区分。
+ * `margin-top: auto` 是「贴底」的关键：快捷入口少的时候也要留在最下面。
+ */
+.sidebar__divider {
+  flex: 0 0 auto;
+  height: 1px;
+  margin: auto 6px 4px;
+  background: rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+/* ---------- 页面骨架 ---------- */
+
+.view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.view__header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 16px;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  background: rgb(var(--v-theme-surface));
+}
+
+.view__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.view__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 18px;
+}
+
+.layout-split {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px 10px;
+  overflow: auto;
+  background: rgb(var(--v-theme-surface));
+  border-right: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  /* 面板里的拖拽只用于排序，不要变成拖动整个窗口 */
+  -webkit-app-region: no-drag;
+}
+
+.workspace-dropzone {
+  /* 铺满面板剩余高度，让列表下方的空白也能接收拖拽落点 */
+  flex: 1;
+  min-height: 0;
+}
+
+.workspace-list .v-list-item {
+  cursor: grab;
+  /* 拖拽时不要顺带选中标题文字 */
+  user-select: none;
+}
+
+.workspace-list .v-list-item.is-dragging {
+  opacity: 0.45;
+}
+
+.workspace-list .v-list-item.is-drop-before {
+  box-shadow: inset 0 2px 0 0 rgb(var(--v-theme-primary));
+}
+
+.workspace-list .v-list-item.is-drop-after {
+  box-shadow: inset 0 -2px 0 0 rgb(var(--v-theme-primary));
+}
+
+.workspace-list__handle {
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+}
+
+.workspace__directories {
+  flex: 0 0 auto;
+  max-height: 190px;
+  overflow: auto;
+  padding: 10px 16px;
+}
+
+.workspace__directory {
+  min-width: 260px;
+  cursor: pointer;
+}
+
+.workspace__directory.is-active {
+  border-color: rgb(var(--v-theme-primary));
+}
+
+.workspace__browser,
+.desktop__browser {
+  flex: 1;
+  min-height: 0;
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+/* ---------- 板块键盘焦点（Ctrl/Cmd + 方向键） ---------- */
+
+/*
+ * 板块本身用 tabindex="-1" 接收焦点，默认焦点圈又丑又和 Vuetify 的风格不一致，
+ * 统一换成一条内描边：焦点在哪个板块，一眼能看出来。
+ */
+.panel,
+.workspace__directories,
+.file-panel {
+  outline: none;
+}
+
+.panel.is-focused,
+.workspace__directories.is-focused,
+.file-panel.is-focused {
+  outline: 2px solid rgb(var(--v-theme-primary));
+  outline-offset: -2px;
+}
+
+.desktop__browser {
+  border-top: none;
+}
+
+/* ---------- 通用工具类 ---------- */
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row--between {
+  justify-content: space-between;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grow {
+  flex: 1;
+  min-width: 0;
+}
+
+.muted {
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Liberation Mono', monospace;
+  font-size: 12px;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-on-surface), 0.22);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* ---------- 文件列表 ---------- */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+  font-size: 12px;
+}
+
+.breadcrumb__item {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  max-width: 200px;
+}
+
+.breadcrumb__item:hover {
+  color: rgb(var(--v-theme-on-surface));
+}
+
+.drop-zone.is-active {
+  outline: 2px dashed rgb(var(--v-theme-primary));
+  outline-offset: -6px;
+}
+
+.file-list {
+  padding: 0;
+  background: transparent;
+}
+
+.file-list .v-list-item {
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 0;
+  min-height: 38px;
+}
+
+.file-list .v-list-item.is-drop-target {
+  outline: 2px dashed rgb(var(--v-theme-primary));
+  outline-offset: -2px;
+}
+
+.file-row__icon {
+  width: 20px;
+  text-align: center;
+}
+
+.file-row__meta {
+  flex: 0 0 auto;
+  width: 100px;
+  text-align: right;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+}
+
+.file-row__meta + .file-row__meta {
+  width: 150px;
+}
+
+.file-list__more {
+  padding: 8px;
+  text-align: center;
+}
+
+/* Ctrl/Cmd + F 的目录内过滤条：贴在文件列表上方 */
+.filter-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 16px;
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  background: rgb(var(--v-theme-surface));
+}
+
+.filter-bar__count {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+/* ---------- 对话框细节 ---------- */
+
+/*
+ * VCard 全局默认是 outlined（透明背景），放在对话框里会透出下层内容。
+ * 对话框卡片一律给实心背景 + 阴影，不加任何模糊效果。
+ */
+.dialog__card {
+  background-color: rgb(var(--v-theme-surface));
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+}
+
+/* 遮罩稍微加深，避免对话框后面的内容太抢眼 */
+.v-dialog .v-overlay__scrim {
+  opacity: 0.5;
+}
+
+.dialog__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.dialog__message {
+  margin: 0;
+  white-space: pre-wrap;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+}
+
+.dialog__error,
+.dialog__warning {
+  margin: 0;
+  font-size: 12px;
+}
+
+.dialog__error {
+  color: rgb(var(--v-theme-error));
+}
+
+.dialog__warning {
+  color: rgb(var(--v-theme-warning));
+}
+
+.shortcut-state {
+  color: rgb(var(--v-theme-success));
+  font-size: 12px;
+}
+
+.shortcut-recorder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shortcut-recorder__field {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.preview {
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 6px;
+  background: rgb(var(--v-theme-background));
+  padding: 8px 10px;
+  max-height: 140px;
+  overflow: auto;
+  font-size: 12px;
+}
+
+.preview__row {
+  display: grid;
+  grid-template-columns: 1fr 12px 1fr;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 1px 0;
+}
+
+/* 整理规则预览：多一列「同名冲突」标签 */
+.rule-preview__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1.2fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 1px 0;
+}
+
+.rule__field--type {
+  flex: 0 0 150px;
+}
+
+.rule__field--pattern {
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+
+/* ---------- 搜索结果 / 待办 / 设置 ---------- */
+
+.search__progress {
+  margin: 6px 0;
+}
+
+.search__results {
+  background: transparent;
+}
+
+/* 已安装应用的图标：撑满 v-icon 的方框，尺寸 / 边距与内置图标一致 */
+.search__icon {
+  overflow: hidden;
+}
+
+.search__icon-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* Ctrl/Cmd + K 的浮动搜索框 */
+
+/*
+ * 弹框整体上移（默认居中会随内容上下浮动），并固定高度：
+ * 结果多的时候内部滚动，少的时候也保持同样大小，避免窗口忽大忽小。
+ */
+.search-dialog__content {
+  align-self: flex-start;
+  margin-top: 64px;
+}
+
+.search-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 128px);
+  overflow: hidden;
+}
+
+/*
+ * 只有「列表里真有内容」时才撑到固定高度；初始只有一行提示（或没有结果）时按内容自适应，
+ * 一上来就是个 460px 的空框体验很差。
+ * Vuetify 给对话框卡片的是 flex: 1 1 var(--v-card-height, 100%)，flex-basis 会盖掉 height，
+ * 所以固定高度只能写在这个自定义属性上。
+ */
+.search-dialog--filled {
+  --v-card-height: 460px;
+}
+
+/*
+ * 初始状态（还没有输入关键字）的另一个上限：即使「最近打开」有不少条，
+ * 也不至于一打开就顶到屏幕中间那么高，超出部分在结果区里滚动。
+ */
+.search-dialog:not(.search-dialog--filled) {
+  max-height: 320px;
+}
+
+.search-dialog__input {
+  flex: 0 0 auto;
+  padding: 16px 16px 0;
+}
+
+.search-dialog__results {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 10px;
+}
+
+.search-dialog__hint {
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+.search-dialog__more {
+  margin-top: 2px;
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+
+/*
+ * 独立搜索窗口：整个窗口就是这一张弹框，所以去掉为「大窗口里的浮层」写的那套
+ * 留白 / 高度上限 / 圆角 / 遮罩变暗，让弹框铺满窗口——不然四周会露出窗口背景，
+ * 看起来就是一圈黑边。
+ */
+body.search-window .search-dialog__content {
+  margin: 0;
+  align-self: stretch;
+  width: 100%;
+}
+
+/*
+ * 搜索窗口是透明窗口：圆角外面必须真的透明，
+ * 所以窗口里的各个铺底（html / body / Vuetify 应用根）都要透明，只让卡片自己画背景。
+ */
+body.search-window,
+body.search-window .v-application {
+  background: transparent;
+}
+
+/*
+ * Vuetify 给 dialog 的浮层留了 24px 边距（宽高都按 100% - 48px 算）：窗口模式下不要。
+ * 这里刻意**不**限制浮层高度：卡片高度是「内容决定的」，渲染进程量完高度再让主进程调窗口，
+ * 如果这里按窗口高度截断，卡片永远长不大，窗口也就跟着一直很矮。
+ */
+body.search-window .v-dialog > .v-overlay__content {
+  margin: 0;
+  /*
+   * 宽度留 1px 余量：卡片右边贴着窗口边缘时，分数像素（显示缩放 1.2 之类）会让
+   * 那 1px 描边画不出来（实测只有右边会缺），留一像素就四面都完整了。
+   */
+  width: calc(100% - 1px);
+  max-width: calc(100% - 1px);
+  max-height: none;
+}
+
+body.search-window .search-dialog,
+body.search-window .search-dialog--filled,
+body.search-window .search-dialog:not(.search-dialog--filled) {
+  /* 高度按内容走（窗口会跟着内容调整），结果多了在结果区里滚 */
+  --v-card-height: auto;
+  width: 100%;
+  max-height: none;
+  /*
+   * 窗口本身是方角的，卡片给一点圆角：描边会沿着圆角走（outline 会跟随 border-radius），
+   * 不会在四个角上被窗口/合成器的圆角遮罩切掉一截。
+   */
+  border-radius: 8px;
+  /*
+   * 卡片默认的 1px 描边贴在窗口边缘时会被裁掉一侧（右侧最常见），
+   * 改成往内画一圈，四面都完整。
+   */
+  border: none;
+  outline: 1px solid currentColor;
+  outline-offset: -1px;
+  /* 独立搜索窗口没有标题栏：按住卡片空白处可以拖动窗口 */
+  -webkit-app-region: drag;
+}
+
+/* 交互元素不能当拖动区，否则输不了字、点不动按钮 */
+body.search-window .search-dialog :is(input, textarea, button, .v-chip, .v-list-item, .v-field, .v-btn, .v-select) {
+  -webkit-app-region: no-drag;
+}
+
+body.search-window .search-dialog__results {
+  /*
+   * 结果区高度只由内容决定（不参与"窗口变高卡片再跟着变"的循环），
+   * 结果多的时候在这一块里滚，窗口高度有上限。
+   */
+  flex: 0 0 auto;
+  max-height: 360px;
+}
+
+body.search-window .v-overlay__scrim {
+  opacity: 0;
+}
+
+/*
+ * 窗口比主界面窄（界面放大时 CSS 宽度还会更小）：chip 那一行做成可横向滚动，
+ * 而不是把「归属」筛选挤到下一行。
+ */
+body.search-window .search-dialog__filters .v-chip-group {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* 添加区与搜索区用同一套尺寸和间距，按钮高度对齐 48px 的输入框 */
+.todo__body,
+.notes__body,
+.clipboard__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/*
+ * 页面顶部固定区（待办 / 备忘 / 规则）：不在滚动区里，列表怎么滚它都不动。
+ * 左右内边距与 .view__body 对齐，视觉上和列表是同一栏。
+ */
+.view__fixed {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 18px 0;
+}
+
+/*
+ * 待办页 / 备忘页 / 规则页的 body 是 flex 列，而 v-empty-state 自带 min-height: 100%。
+ * 两者叠加时上面的卡片会被压到只剩边框（看起来"列表为空就没法添加"），
+ * 所以 body 里的东西一律不压缩，空状态只占剩下的高度，超出交给 .view__body 自己滚。
+ */
+.todo__body > *,
+.notes__body > *,
+.clipboard__body > *,
+.view__body.stack > * {
+  flex: 0 0 auto;
+}
+
+.todo__body > .v-empty-state,
+.notes__body > .v-empty-state,
+.clipboard__body > .v-empty-state,
+.view__body.stack > .v-empty-state {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 「最近操作」列表自己限高 + 滚动，条数多了不会把规则列表挤没 */
+.rules__recent-list {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.todo__fields {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/*
+ * Vuetify 的 .v-input 默认是 flex: 1 1 auto：一行里的输入框平均分配宽度，
+ * 结果标题框被挤到几十像素、日期框却占了两百多像素。这里显式给出各自的基础宽度。
+ */
+.todo__field--title {
+  /* 基础宽度要留出其它几个固定宽度字段的位置，剩余空间由它长出去 */
+  flex: 1 1 240px;
+  min-width: 200px;
+}
+
+.todo__field--workspace {
+  flex: 0 0 160px;
+}
+
+.todo__field--priority {
+  flex: 0 0 120px;
+}
+
+.todo__field--date {
+  /* 原生日期输入的内容（mm/dd/yyyy + 日历按钮）在 150px 下会被裁掉 */
+  flex: 0 0 170px;
+}
+
+.todo__field--filter {
+  flex: 0 0 200px;
+}
+
+.todo__submit {
+  flex: 0 0 auto;
+  height: 48px;
+  min-width: 96px;
+}
+
+/* Chromium 的原生 date 输入内容比其它输入多 2px，会让整行比按钮高出一点 */
+.v-field input[type='date'] {
+  height: 24px;
+}
+
+.is-clickable {
+  cursor: pointer;
+}
+
+/* 收件箱没有工作区可跳，标签不该看起来像能点 */
+.todo__row .v-chip:not(.is-clickable) {
+  cursor: default;
+}
+
+.todo__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.todo__description {
+  padding-top: 0;
+  white-space: pre-wrap;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+}
+
+.settings__card {
+  margin-bottom: 14px;
+}
+
+.settings__card-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 「文件打开方式」：扩展名固定窄，程序路径占满剩余空间 */
+.open-with__row {
+  flex-wrap: wrap;
+}
+
+.open-with__ext {
+  flex: 0 0 150px;
+}
+
+.open-with__program {
+  flex: 1 1 260px;
+  min-width: 200px;
+}
+
+.shortcut {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shortcut__plus {
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+  font-size: 11px;
+}
+
+/* ---------- Toast ---------- */
+
+.toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 2600;
+  max-width: 420px;
+}
+
+.toast {
+  background: rgb(var(--v-theme-surface));
+  color: rgb(var(--v-theme-on-surface));
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-left: 3px solid rgb(var(--v-theme-primary));
+  border-radius: 6px;
+  padding: 9px 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  /* 批量操作的失败明细是多行文本 */
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.toast--error {
+  border-left-color: rgb(var(--v-theme-error));
+}
+
+.toast--success {
+  border-left-color: rgb(var(--v-theme-success));
+}
+
+/* ---------- 备忘 ---------- */
+
+.note__field--url {
+  flex: 1 1 220px;
+  min-width: 180px;
+}
+
+/* 备忘内容按原文换行显示，长链接也不撑破卡片 */
+.note__content {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity));
+}
+
+.note__url {
+  color: rgb(var(--v-theme-primary));
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.note__url:hover {
+  text-decoration: underline;
+}
+
+/* ---------- 剪贴板历史 ---------- */
+
+.clipboard__text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity));
+}
+
+/* 长文本默认折到 6 行，点「展开全部」再看完整内容 */
+.clipboard__text--clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
+  overflow: hidden;
+}
+
+.clipboard__toggle {
+  align-self: flex-start;
+  margin: -4px 0 0 -8px;
+}
+
+.clipboard__file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.clipboard__file-text {
+  min-width: 0;
+}
+
+/* 从搜索跳过来的备忘：短暂高亮，便于在长列表里找到 */
+.view .v-card.is-highlighted {
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 0 0 2px rgba(var(--v-theme-primary), 0.35);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+/* ---------- 搜索弹框的过滤条 ---------- */
+
+.search-dialog__filters {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+  /* 和上面的搜索输入框留出间距，不要贴在一起 */
+  padding: 10px 16px 8px;
+}
+
+.search-dialog__workspace {
+  /* 和前面的筛选 chip 一样小巧，不要比它们高出一大截 */
+  flex: 0 0 148px;
+  max-width: 148px;
+  --v-input-control-height: 30px;
+  font-size: 12px;
+}
+
+.search-dialog__workspace .v-field__input {
+  min-height: 30px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 12px;
+}
+
+.search-dialog__workspace .v-field__append-inner,
+.search-dialog__workspace .v-field__prepend-inner {
+  padding-top: 0;
+}
