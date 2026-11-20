@@ -10,6 +10,9 @@ import type {
   Note,
   NoteInput,
   NotePatch,
+  HomeShortcut,
+  HomeShortcutInput,
+  InstalledAppSummary,
   OperationBatch,
   PathInfo,
   RecentEntry,
@@ -31,6 +34,7 @@ import type {
   TodoInput,
   TodoPatch,
   TransferOptions,
+  WorkLog,
   WindowToggleResult,
   WorkspaceDetail,
   WorkspaceInput,
@@ -50,6 +54,8 @@ export const IPC = {
   appClearRecent: 'app:clear-recent',
   /** 打开系统里已安装的应用（搜索弹框里回车） */
   appOpenApplication: 'app:open-application',
+  /** 首页添加常用应用时的已安装应用列表 */
+  appListApplications: 'app:list-applications',
   /** 呼出全局搜索（主界面里的 Ctrl/Cmd + Alt + K 兜底走这里） */
   appShowSearch: 'app:show-search',
   /** 搜索窗口点结果：显示主界面并跳过去 */
@@ -78,6 +84,7 @@ export const IPC = {
   windowIsMaximized: 'window:is-maximized',
   windowToggle: 'window:toggle',
   windowSetZoom: 'window:set-zoom',
+  windowZoomBy: 'window:zoom-by',
   /** 主进程推送：窗口被隐藏（收进托盘 / 全局快捷键隐藏） */
   eventWindowHidden: 'window:hidden',
 
@@ -127,6 +134,16 @@ export const IPC = {
   shortcutAdd: 'shortcut:add',
   shortcutRemove: 'shortcut:remove',
 
+  homeShortcutList: 'home-shortcut:list',
+  homeShortcutAdd: 'home-shortcut:add',
+  homeShortcutRemove: 'home-shortcut:remove',
+
+  workLogList: 'work-log:list',
+  workLogSave: 'work-log:save',
+  workLogExportWeek: 'work-log:export-week',
+  workLogExportWeekText: 'work-log:export-week-text',
+  workLogCopyWeekText: 'work-log:copy-week-text',
+
   clipboardList: 'clipboard:list',
   clipboardReadText: 'clipboard:read-text',
   clipboardCopy: 'clipboard:copy',
@@ -139,6 +156,9 @@ export const IPC = {
   noteCreate: 'note:create',
   noteUpdate: 'note:update',
   noteRemove: 'note:remove',
+  noteMarkLinkUsed: 'note:mark-link-used',
+  /** 主进程推送：全局搜索打开备忘链接后，首页常用链接需要刷新排序 */
+  eventNoteLinkUsed: 'note:link-used',
 
   pluginList: 'plugin:list',
   pluginInstallFolder: 'plugin:install-folder',
@@ -175,7 +195,8 @@ export interface DesktopApi {
     moveInto(paths: string[], targetDirectory: string, options?: TransferOptions): Promise<BulkResult>
     parent(path: string): Promise<string>
     splitPath(root: string, target: string): Promise<Array<{ label: string; path: string }>>
-    open(path: string): Promise<void>
+    /** 打开文件 / 目录；只有全局搜索发起时才把 `remember` 设为 true */
+    open(path: string, options?: { remember?: boolean }): Promise<void>
     /** 走系统保存对话框写文本文件；取消时返回 null */
     saveText(options: SaveTextOptions): Promise<string | null>
     reveal(path: string): Promise<void>
@@ -220,6 +241,20 @@ export interface DesktopApi {
     add(input: ShortcutInput): Promise<Shortcut>
     remove(id: number): Promise<void>
   }
+  /** 首页快捷访问的系统应用 */
+  home: {
+    list(): Promise<HomeShortcut[]>
+    add(input: HomeShortcutInput): Promise<HomeShortcut>
+    remove(id: number): Promise<void>
+  }
+  /** 每日工作记录 */
+  workLog: {
+    list(startDate: string, endDate: string): Promise<WorkLog[]>
+    save(date: string, content: string): Promise<WorkLog>
+    exportWeek(startDate: string, endDate: string): Promise<{ path: string; count: number } | null>
+    exportWeekText(startDate: string, endDate: string): Promise<{ path: string; count: number } | null>
+    copyWeekText(startDate: string, endDate: string): Promise<{ count: number }>
+  }
   /** 剪贴板历史：文本 / 文件，只在内存里，退出应用即清空 */
   clipboard: {
     list(): Promise<ClipboardEntry[]>
@@ -238,6 +273,10 @@ export interface DesktopApi {
     create(input: NoteInput): Promise<Note>
     update(id: number, patch: NotePatch): Promise<Note>
     remove(id: number): Promise<void>
+    /** 记录一次链接打开，供首页常用链接排序 */
+    markLinkUsed(id: number): Promise<void>
+    /** 订阅链接使用变化，返回取消订阅的函数 */
+    onLinkUsed(listener: () => void): () => void
   }
   /** 工具插件（Phase 1：text / table 结果 + 可选选项） */
   plugins: {
@@ -269,7 +308,7 @@ export interface DesktopApi {
     /** 打开某条备忘里的链接；会同时把这条备忘计入「最近打开」 */
     openNoteUrl(noteId: number, url: string): Promise<void>
     search(keyword: string, options?: SearchOptions): Promise<SearchResult[]>
-    /** 最近打开的文件 / 目录 */
+    /** 从搜索结果打开的文件 / 目录 / 备忘 */
     recent(limit?: number): Promise<RecentEntry[]>
     clearRecent(): Promise<void>
     /** 订阅「托盘 / 全局快捷键要求打开搜索」，返回取消订阅的函数 */
@@ -302,6 +341,8 @@ export interface DesktopApi {
   }
   /** 系统里已安装的应用（搜索弹框里能搜到、回车打开） */
   apps: {
+    /** 首页「添加应用」用的已安装应用列表 */
+    list(): Promise<InstalledAppSummary[]>
     /** `target` 是搜索结果里的 path：Linux 的 .desktop、Windows 的快捷方式、macOS 的 .app */
     open(target: string): Promise<void>
   }
@@ -315,6 +356,8 @@ export interface DesktopApi {
     isMaximized(): Promise<boolean>
     /** 界面大小：整体缩放当前窗口 */
     setZoom(factor: number): Promise<void>
+    /** Ctrl/Cmd +/-：在所有窗口当前缩放基础上增减 */
+    zoomBy(delta: number): Promise<void>
     /** 订阅「窗口被隐藏」，返回取消订阅的函数（用于按设置收起搜索弹框） */
     onHidden(listener: () => void): () => void
   }

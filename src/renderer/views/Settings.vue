@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import type { AppInfo, AppSettings, OpenWithRule } from '@shared/types'
-import { CLIPBOARD_HISTORY, SEARCH_DEBOUNCE, SEARCH_RESULT_LIMIT } from '@shared/types'
+import { CLIPBOARD_HISTORY, HOME_LINK_LIMIT, SEARCH_DEBOUNCE, SEARCH_RESULT_LIMIT } from '@shared/types'
 import {
   DEFAULT_SHORTCUTS,
   formatAccelerator
@@ -87,11 +87,25 @@ const searchResultLimits = computed(() => {
     .map((value) => ({ value, label: t('settings.countValue', { count: value }) }))
 })
 
+/** 首页常用链接数量：默认 5 个，最多 20 个 */
+const homeLinkLimits = computed(() => {
+  const current = settings.state.settings?.homeLinkLimit
+  const values = [3, 5, 8, 10, 15, HOME_LINK_LIMIT.max, current].filter(
+    (value): value is number =>
+      typeof value === 'number' && value >= HOME_LINK_LIMIT.min && value <= HOME_LINK_LIMIT.max
+  )
+  return [...new Set(values)]
+    .sort((left, right) => left - right)
+    .map((value) => ({ value, label: t('settings.countValue', { count: value }) }))
+})
+
 
 /** 快捷键映射表：与 App.vue / FileBrowser.vue 的实际绑定保持一致 */
 const shortcuts = computed<Array<{ keys: string[]; action: string }>>(() => [
   { keys: ['Ctrl/Cmd', '1~8'], action: t('settings.shortcutSwitch') },
+  { keys: ['Ctrl/Cmd', ','], action: t('settings.shortcutSettings') },
   { keys: ['Ctrl/Cmd', 'K'], action: t('settings.shortcutSearch') },
+  { keys: ['Ctrl/Cmd', '+ / - / 0'], action: t('settings.shortcutZoom') },
   { keys: ['Ctrl/Cmd', 'F'], action: t('settings.shortcutFilter') },
   { keys: ['Ctrl/Cmd', '←↑→↓'], action: t('settings.shortcutPanels') },
   { keys: ['Ctrl/Cmd', 'Z'], action: t('settings.shortcutUndo') },
@@ -348,6 +362,17 @@ onMounted(async () => {
             :hint="t('settings.searchLimitHint')"
             persistent-hint
             @update:model-value="updateSettings({ searchResultLimit: Number($event) })"
+          />
+          <v-select
+            :model-value="settings.state.settings?.homeLinkLimit ?? HOME_LINK_LIMIT.default"
+            :items="homeLinkLimits"
+            item-title="label"
+            item-value="value"
+            :label="t('settings.homeLinkLimit')"
+            density="comfortable"
+            :hint="t('settings.homeLinkLimitHint')"
+            persistent-hint
+            @update:model-value="updateSettings({ homeLinkLimit: Number($event) })"
           />
           <v-switch
             :model-value="settings.state.settings?.closeSearchOnHide ?? true"

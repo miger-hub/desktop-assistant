@@ -11,6 +11,9 @@ export const DEFAULT_SHORTCUTS = {
   search: 'CommandOrControl+Alt+K'
 } as const
 
+/** 设置页固定使用单独的符号键，不参与功能页的数字快捷键序列 */
+export const SETTINGS_ACCELERATOR = 'CommandOrControl+,'
+
 const MODIFIERS = new Set(['CommandOrControl', 'Command', 'Control', 'Alt', 'Shift', 'Super'])
 
 /** 允许的「键」部分：字母 / 数字 / 功能键 / 常用命名键 / 常见符号 */
@@ -36,15 +39,30 @@ export function isValidAccelerator(value: string): boolean {
   return new Set(modifiers).size === modifiers.length
 }
 
-/** 比较两个 accelerator 是否等价（修饰键顺序、大小写不影响结果） */
-export function sameAccelerator(left: string, right: string): boolean {
-  return acceleratorKey(left) === acceleratorKey(right)
+function currentPlatform(): string {
+  const runtime = globalThis as typeof globalThis & {
+    navigator?: { userAgent?: string }
+    process?: { platform?: string }
+  }
+  if (runtime.navigator?.userAgent?.includes('Mac')) return 'darwin'
+  return runtime.process?.platform ?? 'linux'
 }
 
-function acceleratorKey(value: string): string {
+/**
+ * 比较两个 accelerator 是否等价。
+ * `CommandOrControl` 需要按当前平台展开：macOS 对应 Command，其它平台对应 Control。
+ */
+export function sameAccelerator(left: string, right: string, platform = currentPlatform()): boolean {
+  return acceleratorKey(left, platform) === acceleratorKey(right, platform)
+}
+
+function acceleratorKey(value: string, platform: string): string {
   const parts = value.trim().toLowerCase().split('+')
   const key = parts.pop() ?? ''
-  return [...parts.sort(), key].join('+')
+  const modifiers = parts.map((modifier) =>
+    modifier === 'commandorcontrol' ? (platform === 'darwin' ? 'command' : 'control') : modifier
+  )
+  return [...modifiers.sort(), key].join('+')
 }
 
 /** 给用户看的文案：`CommandOrControl+Alt+A` → `Ctrl/Cmd + Alt + A` */
@@ -63,4 +81,12 @@ export function formatAccelerator(value: string): string {
   const parts = value.split('+')
   const key = parts.pop() ?? ''
   return [...parts.map((part) => labels[part] ?? part), key].join(' + ')
+}
+
+/** Ctrl/Cmd 组合键里的缩放动作；同时兼容 `+`、`=` 和小键盘加减号 */
+export function zoomActionForKey(key: string, code = ''): 'in' | 'out' | 'reset' | null {
+  if (key === '+' || key === '=' || code === 'NumpadAdd') return 'in'
+  if (key === '-' || code === 'NumpadSubtract') return 'out'
+  if (key === '0' || code === 'Numpad0') return 'reset'
+  return null
 }

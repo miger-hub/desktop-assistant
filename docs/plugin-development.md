@@ -1,6 +1,6 @@
 # 工具插件开发规范（Phase 1 / API v1）
 
-Desktop Assistant 的工具插件是一类本地安装的小工具：用户可以在「工具」页安装文件夹或 ZIP，
+WorkMeta 的工具插件是一类本地安装的小工具：用户可以在「工具」页安装文件夹或 ZIP，
 安装后出现在工具页和全局搜索结果里。Phase 1 只支持文本输入和 text / table / tree 结果，
 不支持自定义 UI。
 

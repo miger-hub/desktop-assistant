@@ -10,6 +10,7 @@ interface NoteRow {
   created_at: string
   updated_at: string
   last_opened_at: string | null
+  last_link_used_at: string | null
 }
 
 function toNote(row: NoteRow): Note {
@@ -21,7 +22,8 @@ function toNote(row: NoteRow): Note {
     sortOrder: row.sort_order,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    lastOpenedAt: row.last_opened_at
+    lastOpenedAt: row.last_opened_at,
+    lastLinkUsedAt: row.last_link_used_at
   }
 }
 
@@ -69,6 +71,16 @@ export class NoteRepository {
   /** 记一次「从搜索打开」；返回是否命中存在的备忘 */
   markOpened(id: number, openedAt: string): boolean {
     return this.db.prepare('UPDATE note SET last_opened_at = ? WHERE id = ?').run(openedAt, id).changes > 0
+  }
+
+  /** 首页 / 备忘页打开过链接：只更新常用链接排序时间 */
+  markLinkUsed(id: number, usedAt: string): boolean {
+    return this.db.prepare('UPDATE note SET last_link_used_at = ? WHERE id = ?').run(usedAt, id).changes > 0
+  }
+
+  /** 清空「从搜索打开」历史；备忘正文与编辑时间不受影响 */
+  clearOpened(): void {
+    this.db.prepare('UPDATE note SET last_opened_at = NULL WHERE last_opened_at IS NOT NULL').run()
   }
 
   /** 新备忘排在最前面：取当前最小排序值再减 10（列表按 sort_order 升序显示） */

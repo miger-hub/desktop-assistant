@@ -2,6 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { MappingRepository } from '../src/main/repositories/MappingRepository'
+import { HomeShortcutRepository } from '../src/main/repositories/HomeShortcutRepository'
 import { NoteRepository } from '../src/main/repositories/NoteRepository'
 import { OperationRepository } from '../src/main/repositories/OperationRepository'
 import { RecentRepository } from '../src/main/repositories/RecentRepository'
@@ -10,8 +11,10 @@ import { SettingRepository } from '../src/main/repositories/SettingRepository'
 import { ShortcutRepository } from '../src/main/repositories/ShortcutRepository'
 import { TodoRepository } from '../src/main/repositories/TodoRepository'
 import { WorkspaceRepository } from '../src/main/repositories/WorkspaceRepository'
+import { WorkLogRepository } from '../src/main/repositories/WorkLogRepository'
 import { DatabaseService } from '../src/main/services/DatabaseService'
 import { FileService } from '../src/main/services/FileService'
+import { HomeService } from '../src/main/services/HomeService'
 import { NoteService } from '../src/main/services/NoteService'
 import { OperationService } from '../src/main/services/OperationService'
 import { RecentService } from '../src/main/services/RecentService'
@@ -37,6 +40,8 @@ export interface TestContext {
   todos: TodoService
   rules: RuleService
   shortcuts: ShortcutService
+  home: HomeService
+  workLogs: WorkLogRepository
   notes: NoteService
   recents: RecentService
   operations: OperationService
@@ -55,6 +60,8 @@ export function createTestContext(): TestContext {
   const ruleRepository = new RuleRepository(connection)
   const operationRepository = new OperationRepository(connection)
   const shortcutRepository = new ShortcutRepository(connection)
+  const homeShortcutRepository = new HomeShortcutRepository(connection)
+  const workLogRepository = new WorkLogRepository(connection)
   const noteRepository = new NoteRepository(connection)
   const recentRepository = new RecentRepository(connection)
 
@@ -69,6 +76,8 @@ export function createTestContext(): TestContext {
     todos: new TodoService(todoRepository, workspaceRepository),
     rules: new RuleService(ruleRepository, files, operations),
     shortcuts: new ShortcutService(shortcutRepository, workspaceRepository, files),
+    home: new HomeService(homeShortcutRepository, files),
+    workLogs: workLogRepository,
     notes: new NoteService(noteRepository),
     recents: new RecentService(recentRepository),
     operations,

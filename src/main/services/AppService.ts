@@ -3,6 +3,7 @@ import { readFile, readdir, stat } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { app, nativeImage, shell } from 'electron'
+import type { InstalledAppSummary } from '../../shared/types'
 import { invalidArgument } from '../errors'
 import { t } from '../i18n'
 
@@ -389,6 +390,18 @@ export class AppService {
   async search(needle: string, limit = MAX_APP_RESULTS): Promise<InstalledApp[]> {
     if (!needle.trim()) return []
     return rankApps(await this.list(), needle, limit)
+  }
+
+  /** 首页「添加应用」列表：带上已经统一尺寸的图标，渲染进程不接触本地路径解析 */
+  async listSummaries(): Promise<InstalledAppSummary[]> {
+    return Promise.all(
+      (await this.list()).map(async (target) => ({
+        path: target.path,
+        name: target.name,
+        comment: target.comment,
+        iconUrl: await this.iconDataUrl(target)
+      }))
+    )
   }
 
   /** 图标统一转成 data URL：渲染进程有 CSP，只有 data: / self 能当图片加载 */

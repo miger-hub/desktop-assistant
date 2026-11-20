@@ -48,6 +48,7 @@ describe('数据库与 migration', () => {
     expect(names).toEqual(
       expect.arrayContaining([
         'file_operation',
+        'home_shortcut',
         'mapped_directory',
         'note',
         'recent_file',
@@ -56,6 +57,7 @@ describe('数据库与 migration', () => {
         'setting',
         'shortcut',
         'todo',
+        'work_log',
         'workspace'
       ])
     )

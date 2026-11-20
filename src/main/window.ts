@@ -1,5 +1,5 @@
 import path from 'node:path'
-import { BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import { IPC } from '../shared/ipc'
 
 const isDev = !process.env.NODE_ENV?.includes('production')
@@ -10,6 +10,9 @@ export interface MainWindowOptions {
 }
 
 export function createMainWindow(options: MainWindowOptions = {}): BrowserWindow {
+  const icon = app.isPackaged
+    ? path.join(process.resourcesPath, 'resources', 'icon.png')
+    : path.join(__dirname, '../../resources/icon.png')
   const window = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -18,7 +21,8 @@ export function createMainWindow(options: MainWindowOptions = {}): BrowserWindow
     show: false,
     autoHideMenuBar: true,
     backgroundColor: '#111318',
-    title: 'Desktop Assistant',
+    title: 'WorkMeta',
+    icon,
     // 无系统边框：窗口拖动与最小化 / 最大化 / 关闭由渲染进程的自定义标题栏负责
     frame: false,
     webPreferences: {

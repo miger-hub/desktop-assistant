@@ -10,4 +10,5 @@ export function registerNoteIpc(context: AppContext): void {
   registerHandler(IPC.noteCreate, (input: NoteInput) => notes.create(input))
   registerHandler(IPC.noteUpdate, (id: number, patch: NotePatch) => notes.update(id, patch))
   registerHandler(IPC.noteRemove, (id: number) => notes.remove(id))
+  registerHandler(IPC.noteMarkLinkUsed, (id: number) => notes.markLinkUsed(id))
 }

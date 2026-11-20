@@ -96,9 +96,13 @@ async function copy(text: string, label: string): Promise<void> {
   }
 }
 
-async function openUrl(url: string): Promise<void> {
+async function openUrl(url: string, note?: Note): Promise<void> {
   try {
     await window.desktop.system.openUrl(url)
+    if (note) {
+      await window.desktop.note.markLinkUsed(note.id)
+      note.lastLinkUsedAt = new Date().toISOString()
+    }
   } catch (error) {
     ui.handleError(error, t('error.openLink'))
   }
@@ -222,7 +226,7 @@ onMounted(async () => {
                 size="small"
                 variant="text"
                 prepend-icon="mdi-open-in-new"
-                @click="openUrl(note.url)"
+                @click="openUrl(note.url, note)"
               >
                 {{ t('notes.openLink') }}
               </v-btn>
@@ -236,7 +240,7 @@ onMounted(async () => {
           <div v-if="note.content" class="note__content">{{ note.content }}</div>
 
           <div v-if="note.url" class="row" style="min-width: 0">
-            <a class="note__url truncate" :href="note.url" @click.prevent="openUrl(note.url)">{{ note.url }}</a>
+            <a class="note__url truncate" :href="note.url" @click.prevent="openUrl(note.url, note)">{{ note.url }}</a>
             <v-btn size="small" variant="text" @click="copy(note.url, t('notes.link'))">{{ t('notes.copyLink') }}</v-btn>
           </div>
         </v-card-text>

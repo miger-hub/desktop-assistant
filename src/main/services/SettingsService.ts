@@ -1,5 +1,5 @@
 import type { AppSettings, LanguageSetting, ThemeMode, UiScale } from '../../shared/types'
-import { CLIPBOARD_HISTORY, SEARCH_DEBOUNCE, SEARCH_RESULT_LIMIT } from '../../shared/types'
+import { CLIPBOARD_HISTORY, HOME_LINK_LIMIT, SEARCH_DEBOUNCE, SEARCH_RESULT_LIMIT } from '../../shared/types'
 import { LOCALES } from '../../shared/i18n'
 import {
   DEFAULT_SHORTCUTS,
@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   clipboardHistoryLimit: CLIPBOARD_HISTORY.default,
   searchDebounceMs: SEARCH_DEBOUNCE.default,
   searchResultLimit: SEARCH_RESULT_LIMIT.default,
+  homeLinkLimit: HOME_LINK_LIMIT.default,
   closeSearchOnHide: true,
   clearSearchOnClose: false,
   searchInMainWindow: false,
@@ -87,6 +88,10 @@ export class SettingsService {
       searchResultLimit: clampTo(
         readNumber(stored.searchResultLimit, DEFAULT_SETTINGS.searchResultLimit),
         SEARCH_RESULT_LIMIT
+      ),
+      homeLinkLimit: clampTo(
+        readNumber(stored.homeLinkLimit, DEFAULT_SETTINGS.homeLinkLimit),
+        HOME_LINK_LIMIT
       ),
       closeSearchOnHide: readBoolean(stored.closeSearchOnHide, DEFAULT_SETTINGS.closeSearchOnHide),
       clearSearchOnClose: readBoolean(stored.clearSearchOnClose, DEFAULT_SETTINGS.clearSearchOnClose),
@@ -156,6 +161,12 @@ export class SettingsService {
       }
       // 超范围不报错，直接收敛到合理区间
       values.searchResultLimit = String(clampTo(Number(patch.searchResultLimit), SEARCH_RESULT_LIMIT))
+    }
+    if (patch.homeLinkLimit !== undefined) {
+      if (!Number.isFinite(Number(patch.homeLinkLimit))) {
+        throw invalidArgument(t('svc.homeLinkLimitNumber'))
+      }
+      values.homeLinkLimit = String(clampTo(Number(patch.homeLinkLimit), HOME_LINK_LIMIT))
     }
     if (patch.closeSearchOnHide !== undefined) {
       values.closeSearchOnHide = String(Boolean(patch.closeSearchOnHide))

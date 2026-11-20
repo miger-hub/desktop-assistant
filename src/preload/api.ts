@@ -31,7 +31,7 @@ export function createApi(): DesktopApi {
       moveInto: (paths, targetDirectory, options) => call(IPC.fileMoveInto, paths, targetDirectory, options),
       parent: (path) => call(IPC.fileParent, path),
       splitPath: (root, target) => call(IPC.fileSplitPath, root, target),
-      open: (path) => call(IPC.fileOpen, path),
+      open: (path, options) => call(IPC.fileOpen, path, options),
       saveText: (options) => call(IPC.fileSaveText, options),
       reveal: (path) => call(IPC.fileReveal, path),
       pickDirectory: (options) => call(IPC.filePickDirectory, options),
@@ -72,6 +72,18 @@ export function createApi(): DesktopApi {
       add: (input) => call(IPC.shortcutAdd, input),
       remove: (id) => call(IPC.shortcutRemove, id)
     },
+    home: {
+      list: () => call(IPC.homeShortcutList),
+      add: (input) => call(IPC.homeShortcutAdd, input),
+      remove: (id) => call(IPC.homeShortcutRemove, id)
+    },
+    workLog: {
+      list: (startDate, endDate) => call(IPC.workLogList, startDate, endDate),
+      save: (date, content) => call(IPC.workLogSave, date, content),
+      exportWeek: (startDate, endDate) => call(IPC.workLogExportWeek, startDate, endDate),
+      exportWeekText: (startDate, endDate) => call(IPC.workLogExportWeekText, startDate, endDate),
+      copyWeekText: (startDate, endDate) => call(IPC.workLogCopyWeekText, startDate, endDate)
+    },
     clipboard: {
       list: () => call(IPC.clipboardList),
       readText: () => call(IPC.clipboardReadText),
@@ -88,7 +100,13 @@ export function createApi(): DesktopApi {
       list: () => call(IPC.noteList),
       create: (input) => call(IPC.noteCreate, input),
       update: (id, patch) => call(IPC.noteUpdate, id, patch),
-      remove: (id) => call(IPC.noteRemove, id)
+      remove: (id) => call(IPC.noteRemove, id),
+      markLinkUsed: (id) => call(IPC.noteMarkLinkUsed, id),
+      onLinkUsed: (listener) => {
+        const handler = (): void => listener()
+        ipcRenderer.on(IPC.eventNoteLinkUsed, handler)
+        return () => ipcRenderer.removeListener(IPC.eventNoteLinkUsed, handler)
+      }
     },
     plugins: {
       list: () => call(IPC.pluginList),
@@ -153,6 +171,7 @@ export function createApi(): DesktopApi {
       getPathForFile: (file) => webUtils.getPathForFile(file)
     },
     apps: {
+      list: () => call(IPC.appListApplications),
       open: (target) => call(IPC.appOpenApplication, target)
     },
     window: {
@@ -162,6 +181,7 @@ export function createApi(): DesktopApi {
       close: () => call(IPC.windowClose),
       isMaximized: () => call(IPC.windowIsMaximized),
       setZoom: (factor) => call(IPC.windowSetZoom, factor),
+      zoomBy: (delta) => call(IPC.windowZoomBy, delta),
       onHidden: (listener) => {
         const handler = (): void => listener()
         ipcRenderer.on(IPC.eventWindowHidden, handler)

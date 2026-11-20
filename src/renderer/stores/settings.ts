@@ -13,6 +13,10 @@ const UI_SCALE_FACTOR: Record<UiScale, number> = {
   'x-large': 1.25
 }
 
+export function uiScaleFactor(scale: UiScale | undefined): number {
+  return scale ? UI_SCALE_FACTOR[scale] ?? 1 : 1
+}
+
 const state = reactive({
   settings: null as AppSettings | null,
   paths: null as PathInfo | null,
@@ -56,7 +60,7 @@ function applyLanguage(setting: AppSettings['language']): void {
 
 /** 界面大小交给窗口缩放，主进程做范围兜底 */
 function applyUiScale(scale: UiScale): void {
-  void window.desktop.window.setZoom(UI_SCALE_FACTOR[scale] ?? 1).catch(() => {
+  void window.desktop.window.setZoom(uiScaleFactor(scale)).catch(() => {
     // 缩放失败不影响其它功能，忽略即可
   })
 }

@@ -14,15 +14,15 @@ pnpm run build:linux:dir   # 只生成免安装目录 release/linux-unpacked/
 
 | 命令 | 产物 | 说明 |
 | --- | --- | --- |
-| `build:linux` | `Desktop Assistant-0.1.0-x64.AppImage` | 单文件，`chmod +x` 后双击 / 命令行运行，不依赖系统目录 |
-| `build:linux` | `Desktop Assistant-0.1.0-x64.deb` | Debian / Ubuntu 系安装包 |
-| `build:linux:dir` | `release/linux-unpacked/` | 免安装目录，直接运行里面的 `desktop-assistant` |
+| `build:linux` | `WorkMeta-0.1.0-x64.AppImage` | 单文件，`chmod +x` 后双击 / 命令行运行，不依赖系统目录 |
+| `build:linux` | `WorkMeta-0.1.0-x64.deb` | Debian / Ubuntu 系安装包 |
+| `build:linux:dir` | `release/linux-unpacked/` | 免安装目录，直接运行里面的 `workmeta` |
 
 AppImage 首次运行：
 
 ```bash
-chmod +x "Desktop Assistant-0.1.0-x64.AppImage"
-./"Desktop Assistant-0.1.0-x64.AppImage"
+chmod +x "WorkMeta-0.1.0-x64.AppImage"
+./"WorkMeta-0.1.0-x64.AppImage"
 ```
 
 ### 常见问题

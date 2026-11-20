@@ -15,9 +15,9 @@ pnpm run build:win:unpacked   # 只生成免安装目录
 
 | 命令 | 产物 | 说明 |
 | --- | --- | --- |
-| `build:win` | `Desktop Assistant-0.1.0-x64-setup.exe` | 安装包，可选安装目录、建桌面/开始菜单快捷方式 |
-| `build:win:portable` | `Desktop Assistant-0.1.0-x64-portable.exe` | 双击即用的绿色版，适合放 U 盘 |
-| `build:win:unpacked` | `release/win-unpacked/` | 免安装目录，直接运行 `Desktop Assistant.exe` |
+| `build:win` | `WorkMeta-0.1.0-x64-setup.exe` | 安装包，可选安装目录、建桌面/开始菜单快捷方式 |
+| `build:win:portable` | `WorkMeta-0.1.0-x64-portable.exe` | 双击即用的绿色版，适合放 U 盘 |
+| `build:win:unpacked` | `release/win-unpacked/` | 免安装目录，直接运行 `WorkMeta.exe` |
 
 `build:win:unpacked` 产出的整个 `win-unpacked` 目录拷到 Windows 也能直接运行，
 不需要安装，适合快速验证。
@@ -56,7 +56,7 @@ docker run --rm -v "$PWD":/project -w /project electronuserland/builder:wine \
 
 配置在 `package.json` 的 `build` 字段：
 
-- `appId` / `productName`：`com.desktopassistant.app` / `Desktop Assistant`
+- `appId` / `productName`：`com.workmeta.app` / `WorkMeta`
 - `asar: true` + `asarUnpack: ["**/*.node"]`：SQLite 原生模块必须解包，否则无法加载
 - `npmRebuild: false`：`better-sqlite3` 自带 N-API 预编译二进制（`prebuilds/win32-x64.node`），
   Windows 上不需要 node-gyp / electron-rebuild
@@ -70,7 +70,7 @@ docker run --rm -v "$PWD":/project -w /project electronuserland/builder:wine \
 
 ## 4. 数据与运行环境
 
-- 数据库位置：`%APPDATA%\Desktop Assistant\data.db`（`app.getPath('userData')`）
+- 数据库位置：`%APPDATA%\Desktop Assistant\data.db`（若旧版本使用 `desktop-assistant` 目录则自动沿用，避免数据丢失）
 - 首次运行会自动建库并执行 migration
 - `better-sqlite3` 的 Windows 预编译模块只依赖 `KERNEL32.dll`（静态链接 C 运行时），
   不要求目标机器额外安装 VC++ Redistributable

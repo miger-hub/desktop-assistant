@@ -67,7 +67,18 @@ describe('NoteService', () => {
   it('新建的备忘不算「最近打开」，从没跳转过时 lastOpenedAt 为 null', () => {
     const note = context.notes.create({ title: 'A' })
     expect(note.lastOpenedAt).toBeNull()
+    expect(note.lastLinkUsedAt).toBeNull()
     expect(context.notes.recentlyOpened(5)).toEqual([])
+  })
+
+  it('打开链接会单独记录最近使用时间', () => {
+    const note = context.notes.create({ title: 'Docs', url: 'example.com/docs' })
+    expect(note.lastLinkUsedAt).toBeNull()
+
+    context.notes.markLinkUsed(note.id)
+
+    expect(context.notes.list()[0].lastLinkUsedAt).toBeTruthy()
+    expect(context.notes.list()[0].lastOpenedAt).toBeNull()
   })
 
   it('从搜索跳转打开过的备忘按时间倒序进入「最近打开」，按 limit 截断', async () => {
@@ -94,5 +105,21 @@ describe('NoteService', () => {
 
     expect(context.notes.recentlyOpened(2).map((note) => note.id)).toEqual([a.id, b.id])
     expect(() => context.notes.markOpened(9999)).not.toThrow()
+  })
+
+  it('清空搜索打开记录不会删除备忘或改动编辑时间', () => {
+    const note = context.notes.create({ title: 'A', content: '正文' })
+    context.notes.markOpened(note.id)
+    expect(context.notes.recentlyOpened(5)).toHaveLength(1)
+
+    context.notes.clearRecentlyOpened()
+
+    expect(context.notes.recentlyOpened(5)).toEqual([])
+    expect(context.notes.list()[0]).toMatchObject({
+      id: note.id,
+      title: 'A',
+      content: '正文',
+      updatedAt: note.updatedAt
+    })
   })
 })

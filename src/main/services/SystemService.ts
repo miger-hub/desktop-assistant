@@ -205,7 +205,7 @@ export class SystemService {
   }
 
   /**
-   * 「最近打开」列表：打开过的文件 / 目录 + 从搜索跳转打开过的备忘，按时间合并。
+   * 全局搜索的「最近打开」：只包含从搜索结果打开的文件 / 目录 / 备忘。
    * 备忘没有路径，用 `note:<id>` 作为去重键，跳转时靠 id 定位。
    */
   recent(limit?: number): RecentEntry[] {
@@ -215,6 +215,7 @@ export class SystemService {
       name: note.title,
       kind: 'note',
       id: note.id,
+      url: note.url || undefined,
       openedAt: note.lastOpenedAt ?? note.updatedAt,
       count: 1
     }))
@@ -224,11 +225,12 @@ export class SystemService {
 
   clearRecent(): void {
     this.recents.clear()
+    this.notes.clearRecentlyOpened()
   }
 
   /**
    * 打开文件或目录：文件先看设置里配的「打开方式」，没命中才交给系统默认程序。
-   * 只有用户主动打开文件时才计入「最近打开」，打开数据目录之类不算。
+   * 只有全局搜索发起打开时才计入「最近打开」，文件列表 / 快捷入口等入口不算。
    */
   async openPath(target: string, options: { remember?: boolean } = {}): Promise<void> {
     if (!(await this.files.exists(target))) throw notFound(t('svc.notExist', { what: t('svc.path'), value: target }))
@@ -243,7 +245,7 @@ export class SystemService {
       if (message) throw fromFsError(new Error(message), target)
     }
 
-    if (options.remember !== false) {
+    if (options.remember === true) {
       this.recents.touch(target, item?.type === 'directory' ? 'directory' : 'file')
     }
   }
@@ -301,8 +303,10 @@ export class SystemService {
    * 带了链接的备忘回车是打开浏览器，这一步同样算打开过这条备忘。
    */
   async openNoteUrl(noteId: number, url: string): Promise<void> {
-    this.notes.markOpened(noteId)
     await this.openUrl(url)
+    this.notes.markLinkUsed(noteId)
+    this.notes.markOpened(noteId)
+    this.mainWindow()?.webContents.send(IPC.eventNoteLinkUsed, { at: Date.now() })
   }
 
   /** 无系统边框窗口：自定义标题栏的窗口控制 */
@@ -334,6 +338,15 @@ export class SystemService {
     if (!Number.isFinite(factor)) return
     const zoom = Math.min(1.5, Math.max(0.8, factor))
     for (const window of BrowserWindow.getAllWindows()) window.webContents.setZoomFactor(zoom)
+  }
+
+  /** Ctrl/Cmd +/-：每个窗口在自己的当前缩放上增减，范围与设置页一致 */
+  zoomWindowsBy(delta: number): void {
+    if (!Number.isFinite(delta)) return
+    for (const window of BrowserWindow.getAllWindows()) {
+      const next = Math.min(1.5, Math.max(0.8, window.webContents.getZoomFactor() + delta))
+      window.webContents.setZoomFactor(next)
+    }
   }
 
   /** 走系统回收站，避免误删 */

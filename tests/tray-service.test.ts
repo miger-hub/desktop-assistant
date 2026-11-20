@@ -10,6 +10,14 @@ const electron = vi.hoisted(() => ({
   register: vi.fn<(accelerator: string, handler: () => void) => boolean>(),
   unregister: vi.fn(),
   isRegistered: vi.fn(),
+  createFromPath: vi.fn((_path: string) => ({
+    isEmpty: () => false,
+    resize: () => ({})
+  })),
+  createFromDataURL: vi.fn((_url: string) => ({
+    isEmpty: () => false,
+    resize: () => ({})
+  })),
   menuTemplate: [] as Array<{ label?: string; type?: string; click?: () => void }>
 }))
 
@@ -31,7 +39,10 @@ vi.mock('electron', () => ({
       return {}
     }
   },
-  nativeImage: { createFromDataURL: () => ({}) }
+  nativeImage: {
+    createFromPath: electron.createFromPath,
+    createFromDataURL: electron.createFromDataURL
+  }
 }))
 
 const { OPEN_SEARCH_ACCELERATOR, TOGGLE_WINDOW_ACCELERATOR, TrayService } = await import(
@@ -76,6 +87,8 @@ beforeEach(() => {
   electron.register.mockReset()
   electron.unregister.mockReset()
   electron.isRegistered.mockReset()
+  electron.createFromPath.mockClear()
+  electron.createFromDataURL.mockClear()
   electron.menuTemplate = []
 })
 
@@ -178,6 +191,9 @@ beforeEach(() => {
     const { actions, service } = createService()
 
     service.apply(traySettings({ trayEnabled: true }))
+    expect(electron.createFromPath).toHaveBeenCalledWith(
+      expect.stringMatching(/resources[/\\]tray-icon\.png$/)
+    )
     const menuLabels = electron.menuTemplate.map((item) => item.label ?? item.type)
     // 托盘菜单文案走 i18n，默认语言是简体中文
     expect(menuLabels).toEqual(['显示 / 隐藏窗口', '搜索', '设置…', 'separator', '退出'])

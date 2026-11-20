@@ -13,4 +13,5 @@ export function registerWindowIpc(context: AppContext): void {
   registerHandler(IPC.windowClose, () => system.closeWindow())
   registerHandler(IPC.windowIsMaximized, () => system.isWindowMaximized())
   registerHandler(IPC.windowSetZoom, (factor: number) => system.setWindowZoom(factor))
+  registerHandler(IPC.windowZoomBy, (delta: number) => system.zoomWindowsBy(delta))
 }

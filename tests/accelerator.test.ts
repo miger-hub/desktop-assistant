@@ -3,7 +3,8 @@ import {
   DEFAULT_SHORTCUTS,
   formatAccelerator,
   isValidAccelerator,
-  sameAccelerator
+  sameAccelerator,
+  zoomActionForKey
 } from '../src/shared/accelerator'
 
 describe('accelerator 工具', () => {
@@ -22,5 +23,22 @@ describe('accelerator 工具', () => {
     expect(formatAccelerator('Control+Shift+T')).toBe('Ctrl + Shift + T')
     expect(sameAccelerator('Alt+Control+A', 'Control+Alt+A')).toBe(true)
     expect(sameAccelerator('Control+Alt+A', 'Control+Alt+B')).toBe(false)
+  })
+
+  it('CommandOrControl 按平台与 Ctrl / Cmd 等价', () => {
+    expect(sameAccelerator('CommandOrControl+,', 'Control+,', 'linux')).toBe(true)
+    expect(sameAccelerator('CommandOrControl+Alt+K', 'Alt+Control+K', 'win32')).toBe(true)
+    expect(sameAccelerator('CommandOrControl+,', 'Command+,', 'darwin')).toBe(true)
+    expect(sameAccelerator('CommandOrControl+,', 'Control+,', 'darwin')).toBe(false)
+  })
+
+  it('Ctrl/Cmd 缩放兼容主键盘 + 与数字小键盘', () => {
+    expect(zoomActionForKey('+')).toBe('in')
+    expect(zoomActionForKey('=', 'Equal')).toBe('in')
+    expect(zoomActionForKey('', 'NumpadAdd')).toBe('in')
+    expect(zoomActionForKey('-')).toBe('out')
+    expect(zoomActionForKey('', 'NumpadSubtract')).toBe('out')
+    expect(zoomActionForKey('0')).toBe('reset')
+    expect(zoomActionForKey('a', 'KeyA')).toBeNull()
   })
 })

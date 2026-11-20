@@ -1,6 +1,6 @@
 # DATABASE.md
 
-本文档描述 Desktop Assistant 当前使用的 SQLite 结构、约定与 migration 流程。
+本文档描述 WorkMeta 当前使用的 SQLite 结构、约定与 migration 流程。
 内容以 `src/main/database/` 与 `src/main/repositories/` 的实际代码为准。
 
 相关文档：[AGENTS.md](AGENTS.md)（数据库原则）、[ARCHITECTURE.md](ARCHITECTURE.md)（分层与 Schema 草案）。
@@ -14,6 +14,7 @@ Driver        better-sqlite3（同步 API，N-API 预编译二进制）
 数据库文件     <userData>/data.db
               Linux   ~/.config/desktop-assistant/data.db
               Windows %APPDATA%\Desktop Assistant\data.db
+                      或更名前的 desktop-assistant 目录（已有 data.db 时优先沿用）
 读取位置       Electron app.getPath('userData')
 连接配置       journal_mode = WAL
               foreign_keys = ON
@@ -93,6 +94,10 @@ migrations: Migration[]   // 按 version 升序执行，每个 migration 一个�
 | 4 | `shortcut` | `migrations/004-shortcut.ts` | `shortcut`（快捷入口） |
 | 5 | `note` | `migrations/005-note.ts` | `note`（备忘） |
 | 6 | `recent-file` | `migrations/006-recent-file.ts` | `recent_file`（最近打开） |
+| 7 | `note-opened` | `migrations/007-note-opened.ts` | `note.last_opened_at`（从搜索打开的时间） |
+| 8 | `plugin` | `migrations/008-plugin.ts` | `plugin`（工具插件状态） |
+| 9 | `home` | `migrations/009-home.ts` | `home_shortcut`（首页应用）/ `work_log`（日报） |
+| 10 | `note-link-usage` | `migrations/010-note-link-usage.ts` | `note.last_link_used_at`（首页常用链接最近使用时间） |
 
 ### 新增 migration 的步骤
 
@@ -366,7 +371,7 @@ UI 里用 `files.exists` 给规则打「目录不存在」标记。
 
 约定：
 
-- 只有**用户主动打开**文件 / 目录才会记录；打开数据目录、备份目录不计入。
+- 只有**从全局搜索结果打开**文件 / 目录才会记录；文件列表、快捷入口、数据目录等其它入口不计入。
 - 文件被删除后条目仍然保留，直到被淘汰或用户「清空」。
 
 对应代码：`RecentRepository` / `RecentService`（`SystemService.openPath` 里调用 `touch`）。
@@ -395,6 +400,36 @@ UI 里用 `files.exists` 给规则打「目录不存在」标记。
 
 ---
 
+### 4.12 `home_shortcut`
+
+首页「快捷访问」里固定的系统应用。只保存启动目标和显示名，应用图标与是否存在都在运行时读取。
+
+| 字段 | 类型 | 约束 | 说明 |
+| --- | --- | --- | --- |
+| `id` | INTEGER | PRIMARY KEY AUTOINCREMENT | |
+| `label` | TEXT | NOT NULL | 首页显示名 |
+| `path` | TEXT | NOT NULL UNIQUE | `.desktop` / `.lnk` / `.app` 等启动目标 |
+| `sort_order` | INTEGER | NOT NULL DEFAULT 0 | 追加时取 `MAX+10` |
+| `created_at` | TEXT | NOT NULL | ISO 8601 |
+| — | — | INDEX `idx_home_shortcut_order` (`sort_order`, `id`) | |
+
+对应代码：`HomeShortcutRepository` / `HomeService`。
+
+### 4.13 `work_log`
+
+首页工作日历的每日日报，每天最多一条。
+
+| 字段 | 类型 | 约束 | 说明 |
+| --- | --- | --- | --- |
+| `date` | TEXT | PRIMARY KEY | `YYYY-MM-DD` |
+| `content` | TEXT | NOT NULL DEFAULT '' | 日报正文，最多 20000 字 |
+| `updated_at` | TEXT | NOT NULL | 最近保存时间（ISO 8601） |
+
+周报按日期范围读取有内容的记录，由主进程通过系统保存对话框导出 Markdown。
+对应代码：`WorkLogRepository` / `WorkLogService`。
+
+---
+
 ## 5. 关系图
 
 ```text
@@ -408,7 +443,9 @@ rule            独立表；source_path / target_path 只存路径，不外键�
 file_operation  ── rule_id（ON DELETE SET NULL）：历史不随规则删除消失
 
 note            独立表；只有文本与可选链接
-recent_file     独立表；按 path 去重的最近打开记录
+recent_file     独立表；按 path 去重、只记录从搜索打开的记录
+home_shortcut   独立表；首页固定的系统应用
+work_log        独立表；按自然日保存的日报
 plugin          独立表；已安装插件的状态
 setting          独立 key-value 表，无外键
 schema_migration 独立表，由 migration 代码维护
@@ -486,8 +523,8 @@ ARCHITECTURE.md §10 提到的后续表，目前**尚未实现**，实现时须�
 
 `tests/database.test.ts` 覆盖：
 
-- 初始化后创建全部表（`file_operation` / `mapped_directory` / `note` / `recent_file` / `rule` /
-  `schema_migration` / `setting` / `shortcut` / `todo` / `workspace`）
+- 初始化后创建全部表（`file_operation` / `home_shortcut` / `mapped_directory` / `note` / `recent_file` / `rule` /
+  `schema_migration` / `setting` / `shortcut` / `todo` / `work_log` / `workspace`）
 - 重复执行 migration 返回 `0`，不会重复应用
 - 外键级联：删除 Workspace 会清掉映射与 Todo
 - 升级前自动备份：备份文件存在，且里面是升级前的结构（没有 `rule` / `file_operation` 等新表）

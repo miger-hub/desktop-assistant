@@ -1,4 +1,5 @@
 import path from 'node:path'
+import { existsSync } from 'node:fs'
 import { app, BrowserWindow, dialog, Notification } from 'electron'
 import { IPC } from '../shared/ipc'
 import type { SearchNavigation, WindowToggleResult } from '../shared/types'
@@ -9,6 +10,7 @@ import { applyLanguageSetting, t } from './i18n'
 import { AppService } from './services/AppService'
 import { MappingRepository } from './repositories/MappingRepository'
 import { NoteRepository } from './repositories/NoteRepository'
+import { HomeShortcutRepository } from './repositories/HomeShortcutRepository'
 import { OperationRepository } from './repositories/OperationRepository'
 import { PluginRepository } from './plugins/PluginRepository'
 import { PluginService } from './plugins/PluginService'
@@ -18,10 +20,12 @@ import { SettingRepository } from './repositories/SettingRepository'
 import { ShortcutRepository } from './repositories/ShortcutRepository'
 import { TodoRepository } from './repositories/TodoRepository'
 import { WorkspaceRepository } from './repositories/WorkspaceRepository'
+import { WorkLogRepository } from './repositories/WorkLogRepository'
 import { DatabaseService } from './services/DatabaseService'
 import { FileService } from './services/FileService'
 import { ClipboardService } from './services/ClipboardService'
 import { NoteService } from './services/NoteService'
+import { HomeService } from './services/HomeService'
 import { OperationService } from './services/OperationService'
 import { RecentService } from './services/RecentService'
 import { RuleService } from './services/RuleService'
@@ -33,6 +37,7 @@ import { TodoService } from './services/TodoService'
 import { TOGGLE_WINDOW_ACCELERATOR, TrayService } from './services/TrayService'
 import { SearchWindow } from './searchWindow'
 import { WorkspaceService } from './services/WorkspaceService'
+import { WorkLogService } from './services/WorkLogService'
 import { createMainWindow } from './window'
 
 /**
@@ -50,6 +55,19 @@ if (process.platform === 'linux') {
   }
 }
 
+/**
+ * 应用更名后仍沿用旧 userData 目录，升级后数据库、设置和插件不会“消失”。
+ * 旧版本在不同平台的目录名不完全一致，优先选择已经存在 data.db 的那个。
+ */
+function resolveLegacyUserDataDir(): string {
+  const appData = app.getPath('appData')
+  const candidates = [path.join(appData, 'Desktop Assistant'), path.join(appData, 'desktop-assistant')]
+  return candidates.find((candidate) => existsSync(path.join(candidate, 'data.db'))) ?? candidates[1]
+}
+
+app.setName('WorkMeta')
+app.setPath('userData', resolveLegacyUserDataDir())
+
 let context: AppContext | null = null
 let shell: TrayService | null = null
 let mainWin: BrowserWindow | null = null
@@ -66,6 +84,8 @@ function bootstrap(): Omit<AppContext, 'shell'> {
   const mappingRepository = new MappingRepository(connection)
   const todoRepository = new TodoRepository(connection)
   const noteRepository = new NoteRepository(connection)
+  const homeShortcutRepository = new HomeShortcutRepository(connection)
+  const workLogRepository = new WorkLogRepository(connection)
   const pluginRepository = new PluginRepository(connection)
   const settingRepository = new SettingRepository(connection)
   const ruleRepository = new RuleRepository(connection)
@@ -99,6 +119,8 @@ function bootstrap(): Omit<AppContext, 'shell'> {
     todos: new TodoService(todoRepository, workspaceRepository),
     rules: new RuleService(ruleRepository, files, operations),
     shortcuts: new ShortcutService(shortcutRepository, workspaceRepository, files),
+    home: new HomeService(homeShortcutRepository, files),
+    workLogs: new WorkLogService(workLogRepository),
     clipboard,
     notes,
     plugins,

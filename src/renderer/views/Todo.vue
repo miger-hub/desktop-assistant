@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import type { Todo, TodoPriority, TodoStatus } from '@shared/types'
 import { formatDurationLabel, isOverdue, todoPriorityLabel } from '../composables/format'
 import { t } from '../i18n'
@@ -20,6 +20,7 @@ const draft = reactive({
 })
 
 const editing = ref<Todo | null>(null)
+const highlightedId = ref<number | null>(null)
 const editDraft = reactive({
   title: '',
   description: '',
@@ -136,9 +137,33 @@ function openWorkspace(todo: Todo): void {
   ui.setView('workspace')
 }
 
+async function revealTodo(id: number): Promise<void> {
+  if (!todoState.items.some((todo) => todo.id === id)) await load()
+  highlightedId.value = id
+  await nextTick()
+  document.querySelector(`[data-todo-id="${id}"]`)?.scrollIntoView({ block: 'center' })
+  window.setTimeout(() => {
+    if (highlightedId.value === id) highlightedId.value = null
+  }, 2400)
+}
+
+watch(
+  () => todoState.focusId,
+  (id) => {
+    if (id === null) return
+    todoState.focusId = null
+    void revealTodo(id)
+  }
+)
+
 onMounted(async () => {
   if (workspaces.state.items.length === 0) await workspaces.load()
   await load()
+  if (todoState.focusId !== null) {
+    const id = todoState.focusId
+    todoState.focusId = null
+    void revealTodo(id)
+  }
 })
 </script>
 
@@ -235,7 +260,12 @@ onMounted(async () => {
       />
 
       <div v-else class="stack">
-        <v-card v-for="todo in todoState.items" :key="todo.id">
+        <v-card
+          v-for="todo in todoState.items"
+          :key="todo.id"
+          :data-todo-id="todo.id"
+          :class="{ 'is-highlighted': highlightedId === todo.id }"
+        >
           <v-card-text class="todo__row">
             <div class="row" style="min-width: 0">
               <v-btn

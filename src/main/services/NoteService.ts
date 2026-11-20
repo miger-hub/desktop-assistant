@@ -47,9 +47,18 @@ export class NoteService {
     this.notes.markOpened(id, openedAt)
   }
 
+  /** 记录一次链接打开，供首页常用链接按最近使用排序 */
+  markLinkUsed(id: number, usedAt = new Date().toISOString()): void {
+    this.notes.markLinkUsed(id, usedAt)
+  }
+
   /** 最近从搜索跳转打开过的备忘 */
   recentlyOpened(limit: number): Note[] {
     return this.notes.findRecentlyOpened(limit)
+  }
+
+  clearRecentlyOpened(): void {
+    this.notes.clearOpened()
   }
 
   create(input: NoteInput): Note {

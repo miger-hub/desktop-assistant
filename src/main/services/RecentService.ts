@@ -13,7 +13,7 @@ export function clampRecentLimit(limit?: number): number {
 }
 
 /**
- * 把「打开过的文件 / 目录」和「最近改动的备忘」按时间合并成一份「最近打开」。
+ * 把「从搜索打开的文件 / 目录」和「从搜索打开的备忘」按时间合并成一份「最近打开」。
  * 纯函数，方便单测；时间相同时保持传入顺序（文件在前）。
  */
 export function mergeRecent(files: RecentEntry[], notes: RecentEntry[], limit: number): RecentEntry[] {

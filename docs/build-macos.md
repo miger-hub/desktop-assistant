@@ -13,9 +13,9 @@ pnpm run build:mac          # dmg + zip（x64 与 arm64）
 
 | 产物 | 说明 |
 | --- | --- |
-| `Desktop Assistant-0.1.0-x64.dmg` | Intel Mac 安装镜像 |
-| `Desktop Assistant-0.1.0-arm64.dmg` | Apple Silicon 安装镜像 |
-| `Desktop Assistant-0.1.0-<arch>.zip` | 免安装压缩包，解压后拖进「应用程序」 |
+| `WorkMeta-0.1.0-x64.dmg` | Intel Mac 安装镜像 |
+| `WorkMeta-0.1.0-arm64.dmg` | Apple Silicon 安装镜像 |
+| `WorkMeta-0.1.0-<arch>.zip` | 免安装压缩包，解压后拖进「应用程序」 |
 
 只想在本机快速验证时，只产出免安装目录：
 
@@ -32,7 +32,7 @@ npx electron-builder --mac --dir     # 产物：release/mac/ 或 release/mac-arm
 ```bash
 # 方式一：在「系统设置 → 隐私与安全性」里点「仍要打开」
 # 方式二：命令行去掉隔离属性
-xattr -dr com.apple.quarantine "/Applications/Desktop Assistant.app"
+xattr -dr com.apple.quarantine "/Applications/WorkMeta.app"
 ```
 
 要彻底消除提示需要签名 + 公证（`CSC_LINK` / `APPLE_ID` 等环境变量），
@@ -40,7 +40,7 @@ xattr -dr com.apple.quarantine "/Applications/Desktop Assistant.app"
 
 ## 3. 运行环境与平台差异
 
-- 数据库位置：`~/Library/Application Support/desktop-assistant/data.db`
+- 数据库位置：`~/Library/Application Support/desktop-assistant/data.db`；若旧版本使用 `Desktop Assistant` 目录，会优先沿用已有数据库
 - 备份：同目录下的 `backups/`
 - 桌面路径来自 `app.getPath('desktop')`，兼容 iCloud 同步的桌面目录
 - 删除走系统废纸篓；「在文件管理器中显示」调用 Finder

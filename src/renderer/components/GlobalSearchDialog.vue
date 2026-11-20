@@ -89,8 +89,7 @@ const workspaceOptions = computed(() => [
 ])
 
 const hasKeyword = computed(() => keyword.value.trim().length > 0)
-/** 有文件 / 目录的打开记录时才显示「清空」：最近编辑的备忘来自备忘本身，清不掉 */
-const hasFileRecents = computed(() => recents.value.some((recent) => recent.kind !== 'note'))
+const hasRecents = computed(() => recents.value.length > 0)
 
 /** 关键字结果 + 最近打开，统一成 SearchEntry */
 const entries = computed<SearchEntry[]>(() => {
@@ -101,9 +100,9 @@ const entries = computed<SearchEntry[]>(() => {
         key: `recent-${recent.path}`,
         type: recent.kind === 'directory' ? ('directory' as const) : isNote ? ('note' as const) : ('file' as const),
         title: recent.name,
-        subtitle: isNote ? t('search.recentNoteSubtitle') : recent.path,
+        subtitle: isNote ? recent.url ?? t('search.recentNoteSubtitle') : recent.path,
         path: isNote ? null : recent.path,
-        url: null,
+        url: isNote ? recent.url ?? null : null,
         iconUrl: null,
         workspaceId: null,
         result: null,
@@ -318,7 +317,7 @@ async function loadRecents(): Promise<void> {
 async function clearRecents(): Promise<void> {
   try {
     await window.desktop.system.clearRecent()
-    // 清空的是文件 / 目录记录；最近编辑的备忘来自备忘本身，清完再读一次让它们继续显示
+    // 文件 / 目录和备忘的搜索打开记录一起清空，备忘正文不受影响
     await loadRecents()
   } catch (error) {
     ui.handleError(error, t('error.clearRecent'))
@@ -378,12 +377,21 @@ function isFilesystemEntry(entry: SearchEntry): boolean {
   return (entry.type === 'file' || entry.type === 'directory') && Boolean(entry.path)
 }
 
+function noteIdFor(entry: SearchEntry): number | null {
+  if (entry.type !== 'note') return null
+  return entry.recent?.id ?? entry.result?.id ?? null
+}
+
+function isNoteUrlEntry(entry: SearchEntry): boolean {
+  return entry.type === 'note' && Boolean(entry.url) && noteIdFor(entry) !== null
+}
+
 /** →：打开所在目录（文件在文件管理器中定位，目录直接打开） */
 async function revealEntry(entry: SearchEntry): Promise<void> {
   const target = entry.path
   if (!target) return
   try {
-    if (entry.type === 'directory') await window.desktop.files.open(target)
+        if (entry.type === 'directory') await window.desktop.files.open(target, { remember: true })
     else await window.desktop.files.reveal(target)
   } catch (error) {
     ui.handleError(error, t('error.openContaining'))
@@ -417,6 +425,17 @@ function handleSideKey(direction: 'left' | 'right'): boolean {
   const index = activeIndex.value
   if (index < 0 || index >= visibleEntries.value.length) return false
   const entry = visibleEntries.value[index]
+
+  if (isNoteUrlEntry(entry)) {
+    const noteId = noteIdFor(entry)!
+    if (direction === 'left') {
+      void navigate({ kind: 'note', noteId })
+    } else {
+      void openLink(entry.url!, noteId)
+    }
+    return true
+  }
+
   if (!isFilesystemEntry(entry)) return false
 
   if (direction === 'right') {
@@ -429,13 +448,18 @@ function handleSideKey(direction: 'left' | 'right'): boolean {
 async function activate(entry: SearchEntry): Promise<void> {
   // 「最近打开」按打开处理，普通文件结果按在文件管理器中定位处理
   if (entry.recent) {
-    // 最近的备忘没有路径，跳回备忘页并定位到这一条
+    // 带链接的最近备忘与普通搜索结果一致：直接打开浏览器
+    if (entry.recent.kind === 'note' && entry.recent.url && entry.recent.id != null) {
+      await openLink(entry.recent.url, entry.recent.id)
+      return
+    }
+    // 没有链接的最近备忘：跳回备忘页并定位到这一条
     if (entry.recent.kind === 'note' && entry.recent.id != null) {
       await navigate({ kind: 'note', noteId: entry.recent.id })
       return
     }
     try {
-      await window.desktop.files.open(entry.recent.path)
+      await window.desktop.files.open(entry.recent.path, { remember: true })
     } catch (error) {
       ui.handleError(error, t('error.open'))
     }
@@ -505,7 +529,7 @@ async function activate(entry: SearchEntry): Promise<void> {
   if (result.path) {
     // 文件 / 目录结果回车直接打开（和「最近打开」一致），目录会交给系统文件管理器
     try {
-      await window.desktop.files.open(result.path)
+      await window.desktop.files.open(result.path, { remember: true })
     } catch (error) {
       ui.handleError(error, t('error.open'))
     }
@@ -633,8 +657,8 @@ function iconFor(entry: SearchEntry): string {
       <v-card-text class="search-dialog__results">
         <div v-if="!hasKeyword && recents.length > 0" class="row row--between">
           <span class="muted">{{ t('search.recentTitle') }}</span>
-          <v-btn v-if="hasFileRecents" size="small" variant="text" @click="clearRecents">
-            {{ t('search.clearFiles') }}
+          <v-btn v-if="hasRecents" size="small" variant="text" @click="clearRecents">
+            {{ t('search.clearRecent') }}
           </v-btn>
         </div>
 
@@ -680,15 +704,15 @@ function iconFor(entry: SearchEntry): string {
               {{ entry.subtitle }}
             </v-list-item-subtitle>
             <template #append>
-              <v-chip v-if="entry.recent" size="small" variant="tonal">{{ t('search.recentChip') }}</v-chip>
               <v-btn
-                v-else-if="entry.url"
+                v-if="entry.url"
                 size="small"
                 variant="text"
                 icon="mdi-open-in-new"
                 :title="t('search.openInBrowser')"
-                @click.stop="openLink(entry.url ?? '', entry.result?.id ?? null)"
+                @click.stop="openLink(entry.url ?? '', entry.recent?.id ?? entry.result?.id ?? null)"
               />
+              <v-chip v-else-if="entry.recent" size="small" variant="tonal">{{ t('search.recentChip') }}</v-chip>
               <v-chip v-else size="small" variant="tonal">{{ typeLabels[entry.type] }}</v-chip>
             </template>
           </v-list-item>

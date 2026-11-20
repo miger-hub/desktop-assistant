@@ -1,8 +1,8 @@
-import { Menu, Tray, globalShortcut, nativeImage } from 'electron'
+import { Menu, Tray, globalShortcut } from 'electron'
 import type { AppSettings, GlobalShortcutEntry, GlobalShortcutStatus } from '../../shared/types'
 import { DEFAULT_SHORTCUTS, formatAccelerator } from '../../shared/accelerator'
 import { t } from '../i18n'
-import { TRAY_ICON_DATA_URL } from './trayIcon'
+import { createTrayIcon } from './trayIcon'
 
 /** 全局快捷键：在应用外也能用（macOS 上 Alt 即 ⌥） */
 export const TOGGLE_WINDOW_ACCELERATOR = DEFAULT_SHORTCUTS.toggle
@@ -241,7 +241,7 @@ export class TrayService {
 
   private createTray(): void {
     try {
-      this.tray = new Tray(nativeImage.createFromDataURL(TRAY_ICON_DATA_URL))
+      this.tray = new Tray(createTrayIcon())
       this.buildMenu()
       // 单击托盘图标即切换窗口显示
       this.tray.on('click', () => this.actions.toggleWindow())

@@ -8,6 +8,7 @@ import type { AppService } from './services/AppService'
 import type { ClipboardService } from './services/ClipboardService'
 import type { DatabaseService } from './services/DatabaseService'
 import type { FileService } from './services/FileService'
+import type { HomeService } from './services/HomeService'
 import type { NoteService } from './services/NoteService'
 import type { OperationService } from './services/OperationService'
 import type { PluginService } from './plugins/PluginService'
@@ -17,6 +18,7 @@ import type { ShortcutService } from './services/ShortcutService'
 import type { SystemService } from './services/SystemService'
 import type { TodoService } from './services/TodoService'
 import type { WorkspaceService } from './services/WorkspaceService'
+import type { WorkLogService } from './services/WorkLogService'
 
 /**
  * 系统集成（托盘 / 全局快捷键）只依赖窗口动作，交给 index.ts 实现。
@@ -53,6 +55,10 @@ export interface AppContext {
   todos: TodoService
   rules: RuleService
   shortcuts: ShortcutService
+  /** 首页快捷访问的系统应用 */
+  home: HomeService
+  /** 每日工作记录与周报导出 */
+  workLogs: WorkLogService
   /** 剪贴板历史（内存中，退出应用即清空） */
   clipboard: ClipboardService
   notes: NoteService

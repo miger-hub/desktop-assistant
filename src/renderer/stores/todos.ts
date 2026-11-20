@@ -12,6 +12,8 @@ export interface TodoViewFilter {
 const state = reactive({
   items: [] as Todo[],
   loading: false,
+  /** 由首页待办标题跳转过来时要定位的条目 */
+  focusId: null as number | null,
   filter: { workspaceId: 'all', status: 'all', keyword: '' } as TodoViewFilter
 })
 
@@ -78,5 +80,17 @@ async function cycleStatus(todo: Todo): Promise<void> {
 }
 
 export function useTodos() {
-  return { state, pending, done, load, create, update, remove, cycleStatus }
+  return {
+    state,
+    pending,
+    done,
+    load,
+    create,
+    update,
+    remove,
+    cycleStatus,
+    focus: (id: number) => {
+      state.focusId = id
+    }
+  }
 }

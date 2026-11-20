@@ -52,7 +52,9 @@ export function registerFileIpc(context: AppContext): void {
   })
   registerHandler(IPC.fileParent, (target: string) => files.parentOf(target))
   registerHandler(IPC.fileSplitPath, (root: string, target: string) => files.splitPath(root, target))
-  registerHandler(IPC.fileOpen, (target: string) => context.system.openPath(target))
+  registerHandler(IPC.fileOpen, (target: string, options?: { remember?: boolean }) =>
+    context.system.openPath(target, options)
+  )
   registerHandler(IPC.fileSaveText, (options: SaveTextOptions) => context.system.saveText(options))
   registerHandler(IPC.fileReveal, (target: string) => context.system.revealPath(target))
   registerHandler(IPC.filePickDirectory, (options?: { title?: string }) => context.system.pickDirectory(options))

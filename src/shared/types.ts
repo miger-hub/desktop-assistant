@@ -131,6 +131,8 @@ export interface AppSettings {
   searchDebounceMs: number
   /** 全局搜索默认展示多少条结果，超出的手动展开 */
   searchResultLimit: number
+  /** 首页常用链接默认显示多少个 */
+  homeLinkLimit: number
   /** 应用隐藏（收进托盘 / 全局快捷键隐藏）时，是否把全局搜索弹框一起收起 */
   closeSearchOnHide: boolean
   /** 关闭搜索弹框后，是否把关键字与结果清空（下次打开是干净的） */
@@ -172,6 +174,9 @@ export const SEARCH_DEBOUNCE = { min: 0, max: 1000, default: 200 } as const
  * 上限 60 与主进程的单次搜索返回上限（`SystemService.MAX_FILE_RESULTS`）保持一致。
  */
 export const SEARCH_RESULT_LIMIT = { min: 5, max: 60, default: 20 } as const
+
+/** 首页常用链接显示数量：最近使用优先，默认 5 个 */
+export const HOME_LINK_LIMIT = { min: 1, max: 20, default: 5 } as const
 
 export interface PathInfo {
   home: string
@@ -284,7 +289,7 @@ export interface SearchNavigation {
   toolId?: string
 }
 
-/** 最近打开的文件 / 目录（搜索增强的「最近打开」） */
+/** 从搜索结果打开的文件 / 目录 / 备忘 */
 export interface RecentEntry {
   path: string
   name: string
@@ -294,6 +299,8 @@ export interface RecentEntry {
   count: number
   /** `kind` 为 note 时的备忘 id（备忘没有路径，用 id 定位） */
   id?: number
+  /** `kind` 为 note 时，当前备忘里的链接；有链接时与搜索结果一样直接打开浏览器 */
+  url?: string
 }
 
 /** 快捷入口：把常用文件 / 目录 / 工作区置顶 */
@@ -337,6 +344,39 @@ export interface ShortcutInput {
   workspaceId?: number | null
 }
 
+/** 首页快捷访问的系统应用 */
+export interface HomeShortcut {
+  id: number
+  label: string
+  /** 启动目标：Linux 的 .desktop、Windows 的 .lnk、macOS 的 .app */
+  path: string
+  sortOrder: number
+  createdAt: string
+  /** 安装目标当前是否仍然存在 */
+  exists: boolean
+}
+
+export interface HomeShortcutInput {
+  path: string
+  label?: string
+}
+
+/** 首页「添加应用」列表里的一项 */
+export interface InstalledAppSummary {
+  path: string
+  name: string
+  comment: string
+  iconUrl: string | null
+}
+
+/** 每个自然日一条工作记录 */
+export interface WorkLog {
+  /** YYYY-MM-DD */
+  date: string
+  content: string
+  updatedAt: string
+}
+
 /** 备忘：一段文本，可选带一个链接 */
 export interface Note {
   id: number
@@ -349,6 +389,8 @@ export interface Note {
   updatedAt: string
   /** 最后一次从全局搜索跳转打开的时间；从没跳转过为 null（「最近打开」用） */
   lastOpenedAt: string | null
+  /** 最后一次从首页 / 备忘页打开链接的时间；用于首页常用链接排序 */
+  lastLinkUsedAt: string | null
 }
 
 export interface NoteInput {

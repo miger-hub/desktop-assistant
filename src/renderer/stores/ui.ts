@@ -3,7 +3,16 @@ import type { ThemeMode } from '@shared/types'
 import { t } from '../i18n'
 import { vuetify } from '../plugins/vuetify'
 
-export type ViewName = 'workspace' | 'desktop' | 'todo' | 'notes' | 'clipboard' | 'rules' | 'tools' | 'settings'
+export type ViewName =
+  | 'home'
+  | 'workspace'
+  | 'desktop'
+  | 'todo'
+  | 'notes'
+  | 'clipboard'
+  | 'rules'
+  | 'tools'
+  | 'settings'
 export type ToastType = 'info' | 'success' | 'error'
 
 export interface Toast {
@@ -34,7 +43,7 @@ export type DialogState =
   | null
 
 const state = reactive({
-  view: 'workspace' as ViewName,
+  view: 'home' as ViewName,
   dialog: null as DialogState,
   toasts: [] as Toast[],
   /** 全局搜索（Ctrl/Cmd + K）是浮动弹框，不是页面 */

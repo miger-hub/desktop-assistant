@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { t } from '../i18n'
+import BrandMark from './BrandMark.vue'
 
 /** 无系统边框窗口的自定义标题栏：拖动区域 + 窗口按钮 */
 const maximized = ref(false)
@@ -48,8 +49,8 @@ onBeforeUnmount(() => window.removeEventListener('resize', refresh))
 <template>
   <header class="titlebar" @dblclick="toggleMaximize">
     <div class="titlebar__brand">
-      <v-icon icon="mdi-view-grid-outline" size="15" />
-      <span>Desktop Assistant</span>
+      <BrandMark :size="18" />
+      <span>{{ t('app.name') }}</span>
     </div>
 
     <div class="titlebar__spacer" />

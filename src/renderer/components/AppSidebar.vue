@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import type { Shortcut } from '@shared/types'
+import { SETTINGS_ACCELERATOR } from '@shared/accelerator'
 import { enterPath, focusPanelSoon, PANEL } from '../composables/navigation'
 import { t } from '../i18n'
 import { usePanel, usePanels } from '../stores/panels'
@@ -27,6 +28,10 @@ function shortcutLabel(key: string): string {
   return isMac ? `⌘ ${key}` : `Ctrl ${key}`
 }
 
+function settingsShortcutLabel(): string {
+  return shortcutLabel(SETTINGS_ACCELERATOR.split('+').pop() ?? ',')
+}
+
 interface SidebarEntry {
   view: ViewName
   /** 文案 key，模板里用 t() 取，语言切换后能跟着变 */
@@ -35,15 +40,16 @@ interface SidebarEntry {
   shortcut: string
 }
 
-/** 主菜单：Ctrl/Cmd + 1~6 依次对应（Settings 固定 7） */
+/** 主菜单：Ctrl/Cmd + 1~8；设置单独使用 Ctrl/Cmd + , */
 const entries: SidebarEntry[] = [
-  { view: 'workspace', labelKey: 'nav.workspace', icon: 'mdi-folder-multiple-outline', shortcut: '1' },
-  { view: 'desktop', labelKey: 'nav.desktop', icon: 'mdi-monitor', shortcut: '2' },
-  { view: 'todo', labelKey: 'nav.todo', icon: 'mdi-check-circle-outline', shortcut: '3' },
-  { view: 'notes', labelKey: 'nav.notes', icon: 'mdi-note-text-outline', shortcut: '4' },
-  { view: 'clipboard', labelKey: 'nav.clipboard', icon: 'mdi-content-paste', shortcut: '5' },
-  { view: 'rules', labelKey: 'nav.rules', icon: 'mdi-auto-fix', shortcut: '6' },
-  { view: 'tools', labelKey: 'nav.tools', icon: 'mdi-toolbox-outline', shortcut: '7' }
+  { view: 'home', labelKey: 'nav.home', icon: 'mdi-home-variant-outline', shortcut: '1' },
+  { view: 'workspace', labelKey: 'nav.workspace', icon: 'mdi-folder-multiple-outline', shortcut: '2' },
+  { view: 'desktop', labelKey: 'nav.desktop', icon: 'mdi-monitor', shortcut: '3' },
+  { view: 'todo', labelKey: 'nav.todo', icon: 'mdi-check-circle-outline', shortcut: '4' },
+  { view: 'notes', labelKey: 'nav.notes', icon: 'mdi-note-text-outline', shortcut: '5' },
+  { view: 'clipboard', labelKey: 'nav.clipboard', icon: 'mdi-content-paste', shortcut: '6' },
+  { view: 'rules', labelKey: 'nav.rules', icon: 'mdi-auto-fix', shortcut: '7' },
+  { view: 'tools', labelKey: 'nav.tools', icon: 'mdi-toolbox-outline', shortcut: '8' }
 ]
 
 /** 设置单独放在左下角，和主菜单分开 */
@@ -51,7 +57,7 @@ const settingsEntry: SidebarEntry = {
   view: 'settings',
   labelKey: 'nav.settings',
   icon: 'mdi-cog-outline',
-  shortcut: '8'
+  shortcut: ''
 }
 
 /**
@@ -327,7 +333,7 @@ function onKeydown(event: KeyboardEvent): void {
         @click="ui.setView(settingsEntry.view)"
       >
         <template #append>
-          <span class="sidebar__shortcut">{{ shortcutLabel(settingsEntry.shortcut) }}</span>
+          <span class="sidebar__shortcut">{{ settingsShortcutLabel() }}</span>
         </template>
       </v-list-item>
     </v-list>

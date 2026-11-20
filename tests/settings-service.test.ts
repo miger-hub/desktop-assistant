@@ -23,6 +23,7 @@ describe('SettingsService', () => {
       clipboardHistoryLimit: 10,
       searchDebounceMs: 200,
       searchResultLimit: 20,
+      homeLinkLimit: 5,
       closeSearchOnHide: true,
       clearSearchOnClose: false,
       searchInMainWindow: false,
@@ -121,6 +122,21 @@ describe('SettingsService', () => {
     expect(context.settings.get().searchResultLimit).toBe(5)
 
     expect(() => context.settings.update({ searchResultLimit: Number('abc') })).toThrow(/数字/)
+  })
+
+  it('首页常用链接数量默认 5，超范围时收敛，非数字被拒绝', () => {
+    expect(context.settings.get().homeLinkLimit).toBe(5)
+
+    context.settings.update({ homeLinkLimit: 8 })
+    expect(context.settings.get().homeLinkLimit).toBe(8)
+
+    context.settings.update({ homeLinkLimit: 999 })
+    expect(context.settings.get().homeLinkLimit).toBe(20)
+
+    context.settings.update({ homeLinkLimit: 0 })
+    expect(context.settings.get().homeLinkLimit).toBe(1)
+
+    expect(() => context.settings.update({ homeLinkLimit: Number('abc') })).toThrow(/数字/)
   })
 
   it('应用隐藏时是否收起搜索可以单独配置', () => {

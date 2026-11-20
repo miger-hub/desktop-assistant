@@ -122,4 +122,23 @@ describe('文件相关 IPC 与 Result 的结合', () => {
       error: { code: 'EXISTS', message: '同名文件已存在：/tmp/b.txt' }
     })
   })
+
+  it('file:open 只在调用方明确要求时记录到搜索最近项', async () => {
+    const calls: Array<[string, { remember?: boolean } | undefined]> = []
+    const system = {
+      openPath: (target: string, options?: { remember?: boolean }) => {
+        calls.push([target, options])
+      }
+    }
+
+    registerFileIpc({ files: {}, operations: { record: () => null }, system } as unknown as AppContext)
+
+    await invoke(IPC.fileOpen, '/tmp/normal.txt')
+    await invoke(IPC.fileOpen, '/tmp/from-search.txt', { remember: true })
+
+    expect(calls).toEqual([
+      ['/tmp/normal.txt', undefined],
+      ['/tmp/from-search.txt', { remember: true }]
+    ])
+  })
 })

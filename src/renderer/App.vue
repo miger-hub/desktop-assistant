@@ -5,7 +5,7 @@ import AppSidebar from './components/AppSidebar.vue'
 import GlobalSearchDialog from './components/GlobalSearchDialog.vue'
 import TitleBar from './components/TitleBar.vue'
 import ToastStack from './components/ToastStack.vue'
-import { useSettings } from './stores/settings'
+import { uiScaleFactor, useSettings } from './stores/settings'
 import { useNotes } from './stores/notes'
 import { useTools } from './stores/tools'
 import { useShortcuts } from './stores/shortcuts'
@@ -19,6 +19,7 @@ import type { SearchNavigation } from '@shared/types'
 import { enterPath } from './composables/navigation'
 import { t } from './i18n'
 import DesktopView from './views/Desktop.vue'
+import HomeView from './views/Home.vue'
 import ClipboardView from './views/Clipboard.vue'
 import NotesView from './views/Notes.vue'
 import RulesView from './views/Rules.vue'
@@ -27,6 +28,7 @@ import SettingsView from './views/Settings.vue'
 import TodoView from './views/Todo.vue'
 import WorkspaceView from './views/Workspace.vue'
 import type { PanelDirection } from './composables/panels'
+import { SETTINGS_ACCELERATOR, zoomActionForKey } from '@shared/accelerator'
 
 const ui = useUi()
 const settings = useSettings()
@@ -51,8 +53,11 @@ let unsubscribeOpenSettings: (() => void) | null = null
 let unsubscribeNavigate: (() => void) | null = null
 /** 「设置变了」的订阅（独立搜索窗口靠它跟随主题 / 缩放） */
 let unsubscribeSettings: (() => void) | null = null
+/** 全局搜索打开链接后，刷新首页常用链接的最近使用排序 */
+let unsubscribeNoteLinkUsed: (() => void) | null = null
 
 const views: Record<ViewName, Component> = {
+  home: HomeView,
   workspace: WorkspaceView,
   desktop: DesktopView,
   todo: TodoView,
@@ -63,7 +68,8 @@ const views: Record<ViewName, Component> = {
   settings: SettingsView
 }
 
-const order: ViewName[] = ['workspace', 'desktop', 'todo', 'notes', 'clipboard', 'rules', 'tools', 'settings']
+/** 数字 1~8 只对应菜单页；设置使用独立的 Ctrl/Cmd + , */
+const numberedViews: ViewName[] = ['home', 'workspace', 'desktop', 'todo', 'notes', 'clipboard', 'rules', 'tools']
 const currentView = computed(() => views[ui.state.view])
 
 /** Ctrl/Cmd + 方向键在板块之间跳转（工作区：列表 / 映射目录 / 文件列表） */
@@ -93,10 +99,27 @@ function onKeydown(event: KeyboardEvent): void {
       return
     }
 
-    const index = Number(event.key)
-    if (index >= 1 && index <= order.length) {
+    if (matchesAccelerator(event, SETTINGS_ACCELERATOR)) {
       event.preventDefault()
-      ui.setView(order[index - 1])
+      ui.setView('settings')
+      return
+    }
+
+    const zoomAction = zoomActionForKey(event.key, event.code)
+    if (zoomAction) {
+      event.preventDefault()
+      if (zoomAction === 'reset') {
+        void window.desktop.window.setZoom(uiScaleFactor(settings.state.settings?.uiScale))
+      } else {
+        void window.desktop.window.zoomBy(zoomAction === 'in' ? 0.1 : -0.1)
+      }
+      return
+    }
+
+    const index = Number(event.key)
+    if (index >= 1 && index <= numberedViews.length) {
+      event.preventDefault()
+      ui.setView(numberedViews[index - 1])
       return
     }
     if (event.key.toLowerCase() === 'k') {
@@ -263,6 +286,7 @@ onMounted(async () => {
   // 托盘 / 全局快捷键 / 主界面里的快捷键要求呼出搜索（默认是独立搜索窗口）
   unsubscribeOpenSearch = window.desktop.system.onOpenSearch(() => ui.openGlobalSearch())
   unsubscribeSettings = window.desktop.system.onSettingsChanged(() => void settings.load())
+  unsubscribeNoteLinkUsed = window.desktop.note.onLinkUsed(() => void notes.load())
   // 独立搜索窗口点了需要主界面配合的结果
   unsubscribeNavigate = window.desktop.system.onNavigate((target) => void applySearchNavigation(target))
   // 托盘菜单「设置…」：直接跳到设置页
@@ -276,6 +300,7 @@ onBeforeUnmount(() => {
   unsubscribeOpenSettings?.()
   unsubscribeNavigate?.()
   unsubscribeSettings?.()
+  unsubscribeNoteLinkUsed?.()
 })
 </script>
 
