@@ -5,13 +5,20 @@ import type {
   InstalledAppSummary,
   Note,
   Todo,
-  WorkLog
+  WorkLog,
+  WorkLogDraft
 } from '@shared/types'
 import { HOME_LINK_LIMIT } from '@shared/types'
 import { recentNoteLinks } from '@shared/noteLinks'
+import {
+  groupWorkLogs,
+  hasWorkLogContent,
+  type WorkLogCategory
+} from '@shared/workLog'
 import BrandMark from '../components/BrandMark.vue'
 import { t, currentLocale } from '../i18n'
 import { useNotes } from '../stores/notes'
+import { useNoteDocuments } from '../stores/noteDocuments'
 import { useSettings } from '../stores/settings'
 import { useTodos } from '../stores/todos'
 import { useUi } from '../stores/ui'
@@ -19,6 +26,7 @@ import { useWorkspaces } from '../stores/workspaces'
 
 const ui = useUi()
 const notes = useNotes()
+const noteDocs = useNoteDocuments()
 const settings = useSettings()
 const todos = useTodos()
 const workspaces = useWorkspaces()
@@ -26,8 +34,13 @@ const workspaces = useWorkspaces()
 const apps = ref<InstalledAppSummary[]>([])
 const shortcuts = ref<HomeShortcut[]>([])
 const homeTodos = ref<Todo[]>([])
-const reportDraft = ref('')
-const reportDirty = ref(false)
+const reportDraft = reactive<WorkLogDraft>({
+  completed: '',
+  incomplete: '',
+  issues: '',
+  content: ''
+})
+const reportMode = ref<'daily' | 'weekly'>('daily')
 const reportSaving = ref(false)
 const reportSavedAt = ref('')
 const loadedWeekKey = ref('')
@@ -75,6 +88,14 @@ function startOfWeek(date: Date): Date {
   return addDays(result, -offset)
 }
 
+function loadReportDraft(log: WorkLog | undefined): void {
+  reportDraft.completed = log?.completed ?? ''
+  reportDraft.incomplete = log?.incomplete ?? ''
+  reportDraft.issues = log?.issues ?? ''
+  reportDraft.content = log?.content ?? ''
+  reportSavedAt.value = log?.updatedAt ?? ''
+}
+
 const today = new Date()
 const todayKey = dateKey(today)
 const selectedDate = ref(todayKey)
@@ -88,8 +109,27 @@ const weekDates = computed(() =>
 const weekStartKey = computed(() => dateKey(selectedWeekStart.value))
 const weekEndKey = computed(() => dateKey(selectedWeekEnd.value))
 const weekRecordedCount = computed(
-  () => weekDates.value.filter((date) => workLogs.value[dateKey(date)]?.content.trim()).length
+  () => weekDates.value.filter((date) => hasWorkLogContent(workLogs.value[dateKey(date)])).length
 )
+const weeklyGroups = computed(() =>
+  groupWorkLogs(
+    weekDates.value
+      .map((date) => workLogs.value[dateKey(date)])
+      .filter((log): log is WorkLog => Boolean(log))
+  )
+)
+const weeklyItemCount = computed(
+  () => Object.values(weeklyGroups.value).reduce((total, items) => total + items.length, 0)
+)
+const reportDirty = computed(() => {
+  const saved = workLogs.value[selectedDate.value]
+  return (
+    reportDraft.completed !== (saved?.completed ?? '') ||
+    reportDraft.incomplete !== (saved?.incomplete ?? '') ||
+    reportDraft.issues !== (saved?.issues ?? '') ||
+    reportDraft.content !== (saved?.content ?? '')
+  )
+})
 
 const calendarDays = computed(() => {
   const first = new Date(monthCursor.value.getFullYear(), monthCursor.value.getMonth(), 1)
@@ -104,7 +144,7 @@ const calendarDays = computed(() => {
       day: date.getDate(),
       currentMonth: date.getMonth() === monthCursor.value.getMonth(),
       isToday: key === todayKey,
-      hasReport: Boolean(workLogs.value[key]?.content.trim())
+      hasReport: hasWorkLogContent(workLogs.value[key])
     }
   })
 })
@@ -115,6 +155,64 @@ const weekdayLabels = computed(() =>
     return weekdayFormatter.value.format(monday)
   })
 )
+
+const reportFields = computed<
+  Array<{ key: 'completed' | 'incomplete' | 'issues' | 'content'; label: string; placeholder: string }>
+>(() => [
+  {
+    key: 'completed',
+    label: t('home.reportCompleted'),
+    placeholder: t('home.reportCompletedPlaceholder')
+  },
+  {
+    key: 'incomplete',
+    label: t('home.reportIncomplete'),
+    placeholder: t('home.reportIncompletePlaceholder')
+  },
+  {
+    key: 'issues',
+    label: t('home.reportIssues'),
+    placeholder: t('home.reportIssuesPlaceholder')
+  },
+  {
+    key: 'content',
+    label: t('home.reportDefault'),
+    placeholder: t('home.reportPlaceholder')
+  }
+])
+
+const weeklySections = computed<
+  Array<{ key: WorkLogCategory; label: string; icon: string; color: string; items: string[] }>
+>(() => [
+  {
+    key: 'completed',
+    label: t('home.reportCompleted'),
+    icon: 'mdi-check-circle-outline',
+    color: 'success',
+    items: weeklyGroups.value.completed
+  },
+  {
+    key: 'incomplete',
+    label: t('home.reportIncomplete'),
+    icon: 'mdi-progress-clock',
+    color: 'warning',
+    items: weeklyGroups.value.incomplete
+  },
+  {
+    key: 'issues',
+    label: t('home.reportIssues'),
+    icon: 'mdi-alert-circle-outline',
+    color: 'error',
+    items: weeklyGroups.value.issues
+  },
+  {
+    key: 'default',
+    label: t('home.reportDefault'),
+    icon: 'mdi-text-box-outline',
+    color: 'info',
+    items: weeklyGroups.value.default
+  }
+])
 
 const pendingTodos = computed(() =>
   homeTodos.value
@@ -173,9 +271,7 @@ async function loadWeekLogs(): Promise<void> {
     const logs = await window.desktop.workLog.list(weekStartKey.value, weekEndKey.value)
     loadedWeekKey.value = weekStartKey.value
     workLogs.value = { ...workLogs.value, ...Object.fromEntries(logs.map((log) => [log.date, log])) }
-    reportDraft.value = workLogs.value[selectedDate.value]?.content ?? ''
-    reportSavedAt.value = workLogs.value[selectedDate.value]?.updatedAt ?? ''
-    reportDirty.value = false
+    loadReportDraft(workLogs.value[selectedDate.value])
   } catch (error) {
     ui.handleError(error, t('error.readWorkLogs'))
   }
@@ -218,10 +314,14 @@ function changeMonth(delta: number): void {
 async function saveReport(silent = false): Promise<void> {
   reportSaving.value = true
   try {
-    const saved = await window.desktop.workLog.save(selectedDate.value, reportDraft.value)
+    const saved = await window.desktop.workLog.save(selectedDate.value, {
+      completed: reportDraft.completed,
+      incomplete: reportDraft.incomplete,
+      issues: reportDraft.issues,
+      content: reportDraft.content
+    })
     workLogs.value = { ...workLogs.value, [saved.date]: saved }
-    reportSavedAt.value = saved.updatedAt
-    reportDirty.value = false
+    loadReportDraft(saved)
     if (!silent) ui.toast(t('home.reportSaved'), 'success')
   } catch (error) {
     ui.handleError(error, t('error.saveWorkLog'))
@@ -303,8 +403,11 @@ async function removeApp(shortcut: HomeShortcut): Promise<void> {
 
 async function cycleTodo(todo: Todo): Promise<void> {
   try {
+    const willComplete = todo.status === 'doing'
+    if (willComplete && !(await savePendingReport())) return
     await todos.cycleStatus(todo)
     homeTodos.value = await window.desktop.todo.list()
+    if (willComplete) await Promise.all([loadWeekLogs(), loadMonthLogs()])
   } catch (error) {
     ui.handleError(error, t('error.updateTodo'))
   }
@@ -349,7 +452,13 @@ async function openLink(note: Note): Promise<void> {
 }
 
 function openNote(note: Note): void {
+  noteDocs.showMemo()
   notes.focus(note.id)
+  ui.setView('notes')
+}
+
+function openMemoView(): void {
+  noteDocs.showMemo()
   ui.setView('notes')
 }
 
@@ -377,13 +486,7 @@ watch(selectedDate, async () => {
     await loadWeekLogs()
     return
   }
-  reportDraft.value = workLogs.value[selectedDate.value]?.content ?? ''
-  reportSavedAt.value = workLogs.value[selectedDate.value]?.updatedAt ?? ''
-  reportDirty.value = false
-})
-
-watch(reportDraft, () => {
-  reportDirty.value = reportDraft.value !== (workLogs.value[selectedDate.value]?.content ?? '')
+  loadReportDraft(workLogs.value[selectedDate.value])
 })
 
 onMounted(() => void loadHome())
@@ -447,65 +550,125 @@ onMounted(() => void loadHome())
               </div>
 
               <div class="home-report">
-                <div class="row row--between">
-                  <div>
-                    <strong>{{ t('home.reportTitle') }}</strong>
+                <div class="home-report__header">
+                  <div class="home-report__title">
+                    <strong>
+                      {{ reportMode === 'daily' ? t('home.reportTitle') : t('home.weeklyReportTitle') }}
+                    </strong>
+                    <v-btn-toggle
+                      v-model="reportMode"
+                      mandatory
+                      density="compact"
+                      variant="outlined"
+                      divided
+                    >
+                      <v-btn value="daily" size="small">{{ t('home.reportDailyTab') }}</v-btn>
+                      <v-btn value="weekly" size="small">{{ t('home.reportWeeklyTab') }}</v-btn>
+                    </v-btn-toggle>
+                  </div>
+                  <span class="muted mono">{{ t('home.weekRecorded', { count: weekRecordedCount }) }}</span>
+                </div>
+
+                <template v-if="reportMode === 'daily'">
+                  <div class="home-report__meta">
                     <p class="muted">{{ dateFormatter.format(parseDateKey(selectedDate)) }}</p>
+                    <span class="muted">{{ t('home.reportCompletedHint') }}</span>
                   </div>
-                  <div class="row">
-                    <span class="muted mono">{{ t('home.weekRecorded', { count: weekRecordedCount }) }}</span>
-                    <v-btn
-                      icon="mdi-content-copy"
-                      size="small"
-                      variant="text"
-                      :title="t('home.copyWeekText')"
-                      :disabled="weekRecordedCount === 0"
-                      @click="copyWeekText"
-                    />
-                    <v-menu location="bottom end" close-on-content-click>
-                      <template #activator="{ props }">
-                        <v-btn
-                          v-bind="props"
-                          icon="mdi-download-outline"
-                          size="small"
-                          variant="text"
-                          :title="t('home.exportWeek')"
-                          :disabled="weekRecordedCount === 0"
-                        />
-                      </template>
-                      <v-list density="compact">
-                        <v-list-item
-                          prepend-icon="mdi-text-box-outline"
-                          :title="t('home.exportWeekText')"
-                          @click="exportWeekText"
-                        />
-                        <v-list-item
-                          prepend-icon="mdi-language-markdown-outline"
-                          :title="t('home.exportWeekMarkdown')"
-                          @click="exportWeek"
-                        />
-                      </v-list>
-                    </v-menu>
+                  <div class="home-report__fields">
+                    <label v-for="field in reportFields" :key="field.key" class="home-report__field">
+                      <span>{{ field.label }}</span>
+                      <v-textarea
+                        v-model="reportDraft[field.key]"
+                        rows="2"
+                        auto-grow
+                        hide-details
+                        :placeholder="field.placeholder"
+                        @keydown.ctrl.enter.prevent="saveReport()"
+                        @keydown.meta.enter.prevent="saveReport()"
+                        @blur="reportDirty && saveReport(true)"
+                      />
+                    </label>
                   </div>
-                </div>
-                <v-textarea
-                  v-model="reportDraft"
-                  rows="5"
-                  auto-grow
-                  hide-details
-                  :placeholder="t('home.reportPlaceholder')"
-                  @keydown.ctrl.enter.prevent="saveReport()"
-                  @keydown.meta.enter.prevent="saveReport()"
-                  @blur="reportDirty && saveReport(true)"
-                />
-                <div class="row row--between">
-                  <span class="muted">
-                    {{ reportDirty ? t('home.reportUnsaved') : reportSavedAt ? t('home.reportSaved') : t('home.reportHint') }}
-                  </span>
-                  <v-btn color="primary" :loading="reportSaving" :disabled="!reportDirty" @click="saveReport()">
-                    {{ t('common.save') }}
-                  </v-btn>
-                </div>
+                  <div class="row row--between">
+                    <span class="muted">
+                      {{ reportDirty ? t('home.reportUnsaved') : reportSavedAt ? t('home.reportSaved') : t('home.reportHint') }}
+                    </span>
+                    <v-btn color="primary" :loading="reportSaving" :disabled="!reportDirty" @click="saveReport()">
+                      {{ t('common.save') }}
+                    </v-btn>
+                  </div>
+                </template>
+
+                <template v-else>
+                  <div class="home-report__meta home-report__meta--weekly">
+                    <p class="muted">
+                      {{ t('home.weeklyReportRange', { start: weekStartKey, end: weekEndKey }) }}
+                    </p>
+                  </div>
+                  <v-empty-state
+                    v-if="weeklyItemCount === 0"
+                    icon="mdi-clipboard-text-outline"
+                    :title="t('home.weeklyReportEmpty')"
+                    :text="t('home.weeklyReportEmptyText')"
+                    class="home-card__empty"
+                  />
+                  <div v-else class="home-weekly">
+                    <section
+                      v-for="section in weeklySections"
+                      :key="section.key"
+                      class="home-weekly__section"
+                    >
+                      <div class="home-weekly__heading">
+                        <v-icon :icon="section.icon" :color="section.color" size="18" />
+                        <strong>{{ section.label }}</strong>
+                        <v-chip size="x-small" variant="tonal">{{ section.items.length }}</v-chip>
+                      </div>
+                      <ol v-if="section.items.length > 0">
+                        <li v-for="(item, index) in section.items" :key="`${section.key}-${index}`">
+                          {{ item }}
+                        </li>
+                      </ol>
+                      <p v-else class="muted">{{ t('common.empty') }}</p>
+                    </section>
+                  </div>
+                  <div class="row row--between">
+                    <span class="muted">{{ t('home.weeklyReportItems', { count: weeklyItemCount }) }}</span>
+                    <div class="row">
+                      <v-btn
+                        icon="mdi-content-copy"
+                        size="small"
+                        variant="text"
+                        :title="t('home.copyWeekText')"
+                        :disabled="weekRecordedCount === 0"
+                        @click="copyWeekText"
+                      />
+                      <v-menu location="bottom end" close-on-content-click>
+                        <template #activator="{ props }">
+                          <v-btn
+                            v-bind="props"
+                            icon="mdi-download-outline"
+                            size="small"
+                            variant="text"
+                            :title="t('home.exportWeek')"
+                            :disabled="weekRecordedCount === 0"
+                          />
+                        </template>
+                        <v-list density="compact">
+                          <v-list-item
+                            prepend-icon="mdi-text-box-outline"
+                            :title="t('home.exportWeekText')"
+                            @click="exportWeekText"
+                          />
+                          <v-list-item
+                            prepend-icon="mdi-language-markdown-outline"
+                            :title="t('home.exportWeekMarkdown')"
+                            @click="exportWeek"
+                          />
+                        </v-list>
+                      </v-menu>
+                    </div>
+                  </div>
+                </template>
               </div>
             </v-card-text>
           </v-card>
@@ -589,7 +752,7 @@ onMounted(() => void loadHome())
                 <v-icon icon="mdi-link-variant" color="success" />
                 {{ t('home.linksTitle') }}
               </span>
-              <v-btn size="small" variant="text" append-icon="mdi-arrow-right" @click="ui.setView('notes')">
+              <v-btn size="small" variant="text" append-icon="mdi-arrow-right" @click="openMemoView">
                 {{ t('home.manageLinks') }}
               </v-btn>
             </v-card-title>
@@ -717,6 +880,7 @@ onMounted(() => void loadHome())
             icon="mdi-application-search-outline"
             :title="t('home.noAppsFound')"
             :text="t('home.noAppsFoundText')"
+            class="home-app-picker__empty"
           />
         </v-card-text>
         <v-card-actions>
@@ -1128,15 +1292,112 @@ onMounted(() => void loadHome())
 .home-report {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   margin-top: 15px;
   padding-top: 15px;
   border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
 }
 
-.home-report p {
+.home-report__header,
+.home-report__title,
+.home-report__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.home-report__header,
+.home-report__meta {
+  justify-content: space-between;
+}
+
+.home-report__header {
+  flex-wrap: wrap;
+}
+
+.home-report__title {
+  flex-wrap: wrap;
+}
+
+.home-report__meta {
+  align-items: flex-start;
+}
+
+.home-report__meta p {
   margin: 3px 0 0;
   font-size: 12px;
+}
+
+.home-report__meta span {
+  max-width: 62%;
+  font-size: 11px;
+  line-height: 1.4;
+  text-align: right;
+}
+
+.home-report__fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.home-report__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.home-report__field > span {
+  padding-left: 2px;
+  color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity));
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.home-report__field :deep(.v-field__input) {
+  min-height: 54px;
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.home-weekly {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-weekly__section {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  border-radius: 10px;
+  background: rgba(var(--v-theme-on-surface), 0.025);
+}
+
+.home-weekly__heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.home-weekly__section ol {
+  margin: 7px 0 0;
+  padding-left: 22px;
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.home-weekly__section li + li {
+  margin-top: 3px;
+}
+
+.home-weekly__section p {
+  margin: 7px 0 0;
+  font-size: 11px;
 }
 
 .home-links {
@@ -1203,7 +1464,8 @@ onMounted(() => void loadHome())
 }
 
 .home-app-picker {
-  min-height: 420px;
+  /* 结果少时让对话框按内容收高；列表多时只让列表区滚动 */
+  min-height: 0;
 }
 
 .home-app-picker__list {
@@ -1212,6 +1474,21 @@ onMounted(() => void loadHome())
   gap: 4px;
   max-height: 460px;
   overflow-y: auto;
+}
+
+.home-app-picker__empty {
+  min-height: 104px !important;
+  padding: 4px !important;
+}
+
+.home-app-picker__empty :deep(.v-empty-state__media) {
+  margin-bottom: 0;
+}
+
+.home-app-picker__empty :deep(.v-empty-state__media .v-icon) {
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 36px !important;
 }
 
 .home-app-picker__item {
@@ -1280,6 +1557,22 @@ onMounted(() => void loadHome())
   .home__today {
     align-items: flex-start;
     min-width: 0;
+  }
+}
+
+@media (max-width: 680px) {
+  .home-report__fields,
+  .home-weekly {
+    grid-template-columns: 1fr;
+  }
+
+  .home-report__meta {
+    flex-direction: column;
+  }
+
+  .home-report__meta span {
+    max-width: none;
+    text-align: left;
   }
 }
 </style>

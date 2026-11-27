@@ -25,6 +25,8 @@ import { DatabaseService } from './services/DatabaseService'
 import { FileService } from './services/FileService'
 import { ClipboardService } from './services/ClipboardService'
 import { NoteService } from './services/NoteService'
+import { NoteDocumentService } from './services/NoteDocumentService'
+import { registerNoteAssetProtocol } from './noteProtocol'
 import { HomeService } from './services/HomeService'
 import { OperationService } from './services/OperationService'
 import { RecentService } from './services/RecentService'
@@ -99,12 +101,15 @@ function bootstrap(): Omit<AppContext, 'shell'> {
   const recent = new RecentService(recentRepository)
   const settings = new SettingsService(settingRepository)
   const notes = new NoteService(noteRepository)
+  const noteDocs = new NoteDocumentService(path.join(app.getPath('userData'), 'notes'), workspaceRepository)
+  registerNoteAssetProtocol(noteDocs)
   const plugins = new PluginService(
     pluginRepository,
     path.join(app.getPath('userData'), 'plugins'),
     () => notifyPluginChanged()
   )
   const apps = new AppService()
+  const workLogs = new WorkLogService(workLogRepository)
   // 先扫一遍已安装应用：第一次搜索不用等 IO（扫不到也不影响其它功能）
   void apps.list().catch(() => undefined)
 
@@ -116,13 +121,14 @@ function bootstrap(): Omit<AppContext, 'shell'> {
     database,
     files,
     workspaces: new WorkspaceService(workspaceRepository, mappingRepository, files),
-    todos: new TodoService(todoRepository, workspaceRepository),
+    todos: new TodoService(todoRepository, workspaceRepository, workLogs),
     rules: new RuleService(ruleRepository, files, operations),
     shortcuts: new ShortcutService(shortcutRepository, workspaceRepository, files),
     home: new HomeService(homeShortcutRepository, files),
-    workLogs: new WorkLogService(workLogRepository),
+    workLogs,
     clipboard,
     notes,
+    noteDocs,
     plugins,
     operations,
     settings,
@@ -133,6 +139,7 @@ function bootstrap(): Omit<AppContext, 'shell'> {
       mappingRepository,
       todoRepository,
       notes,
+      noteDocs,
       plugins,
       clipboard,
       recent,

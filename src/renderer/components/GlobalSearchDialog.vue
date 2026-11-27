@@ -21,6 +21,7 @@ interface SearchEntry {
   title: string
   subtitle: string
   path: string | null
+  notePath: string | null
   url: string | null
   /** 已安装应用的图标（data URL），没有就用内置图标兜底 */
   iconUrl: string | null
@@ -102,6 +103,7 @@ const entries = computed<SearchEntry[]>(() => {
         title: recent.name,
         subtitle: isNote ? recent.url ?? t('search.recentNoteSubtitle') : recent.path,
         path: isNote ? null : recent.path,
+        notePath: null,
         url: isNote ? recent.url ?? null : null,
         iconUrl: null,
         workspaceId: null,
@@ -117,6 +119,7 @@ const entries = computed<SearchEntry[]>(() => {
     title: result.title,
     subtitle: result.subtitle,
     path: result.path ?? null,
+    notePath: result.notePath ?? null,
     url: result.url ?? null,
     iconUrl: result.iconUrl ?? null,
     workspaceId: result.workspaceId ?? null,
@@ -509,7 +512,7 @@ async function activate(entry: SearchEntry): Promise<void> {
       await openLink(result.url, result.id ?? null)
       return
     }
-    await navigate({ kind: 'note', noteId: result.id ?? undefined })
+    await navigate({ kind: 'note', noteId: result.id ?? undefined, notePath: result.notePath })
     return
   }
 

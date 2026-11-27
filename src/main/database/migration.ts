@@ -9,6 +9,7 @@ import { migration007 } from './migrations/007-note-opened'
 import { migration008 } from './migrations/008-plugin'
 import { migration009 } from './migrations/009-home'
 import { migration010 } from './migrations/010-note-link-usage'
+import { migration011 } from './migrations/011-work-log-sections'
 
 export interface Migration {
   version: number
@@ -27,7 +28,8 @@ export const migrations: Migration[] = [
   migration007,
   migration008,
   migration009,
-  migration010
+  migration010,
+  migration011
 ]
 
 interface AppliedRow {

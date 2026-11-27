@@ -26,6 +26,8 @@ Driver        better-sqlite3（同步 API，N-API 预编译二进制）
 - SQLite 只保存 **Workspace / Directory Mapping / Todo / Rule / Shortcut / Note / Setting**、
   文件操作历史与「最近打开」。
 - **文件内容与文件列表不进入数据库**，文件只在运行时由 `FileService` 读取。
+- **文件型笔记正文不进入数据库**：Markdown 保存在 `<userData>/notes/`，图片在同级
+  `attachments/`，数据库中的旧 `note` 表只继续服务「备忘」。
 - 结构变化只新增 migration，不修改历史版本。
 - **升级前先备份**（`VACUUM INTO`），版本回退时用备份覆盖 `data.db`。
 - 数据库不放在项目目录，卸载应用时保留数据（`nsis.deleteAppDataOnUninstall: false`）。
@@ -98,6 +100,7 @@ migrations: Migration[]   // 按 version 升序执行，每个 migration 一个�
 | 8 | `plugin` | `migrations/008-plugin.ts` | `plugin`（工具插件状态） |
 | 9 | `home` | `migrations/009-home.ts` | `home_shortcut`（首页应用）/ `work_log`（日报） |
 | 10 | `note-link-usage` | `migrations/010-note-link-usage.ts` | `note.last_link_used_at`（首页常用链接最近使用时间） |
+| 11 | `work-log-sections` | `migrations/011-work-log-sections.ts` | `work_log.completed` / `incomplete` / `issues`（日报四栏） |
 
 ### 新增 migration 的步骤
 
@@ -353,6 +356,24 @@ UI 里用 `files.exists` 给规则打「目录不存在」标记。
 
 约定：备忘只存文本，不存文件内容；关键字搜索覆盖标题、内容与链接（`NoteRepository.find`）。
 
+### 文件型笔记
+
+文件型笔记不新增 SQLite 表，也不复制正文进数据库：
+
+```text
+<userData>/notes/
+  <目录>/
+    <标题>.md
+    attachments/
+      <图片>
+```
+
+- `.md` 是唯一正文来源，由 `NoteDocumentService` 扫描和读写。
+- 工作区归属写入轻量 frontmatter：`workmetaWorkspaceId: <id>`；其它用户自定义 YAML 行会保留。
+- 图片只在 Markdown 中保存 `attachments/<文件名>` 相对路径，渲染时由只读
+  `workmeta-note://` 协议加载。
+- 标题修改会重命名 `.md` 文件；目录重命名会保留其中的笔记和附件。
+
 对应代码：`NoteRepository` / `NoteService`。
 
 ### 4.10 `recent_file`
@@ -417,15 +438,20 @@ UI 里用 `files.exists` 给规则打「目录不存在」标记。
 
 ### 4.13 `work_log`
 
-首页工作日历的每日日报，每天最多一条。
+首页工作日历的每日日报，每天最多一条。每个类别里的非空行是一条工作项；
+「默认」沿用旧字段 `content`，升级前的日报正文会原样保留在这里。
 
 | 字段 | 类型 | 约束 | 说明 |
 | --- | --- | --- | --- |
 | `date` | TEXT | PRIMARY KEY | `YYYY-MM-DD` |
-| `content` | TEXT | NOT NULL DEFAULT '' | 日报正文，最多 20000 字 |
+| `content` | TEXT | NOT NULL DEFAULT '' | 「默认」栏，最多 20000 字 |
+| `completed` | TEXT | NOT NULL DEFAULT '' | 「完成」栏，每行一条，最多 20000 字 |
+| `incomplete` | TEXT | NOT NULL DEFAULT '' | 「未完成」栏，每行一条，最多 20000 字 |
+| `issues` | TEXT | NOT NULL DEFAULT '' | 「问题」栏，每行一条，最多 20000 字 |
 | `updated_at` | TEXT | NOT NULL | 最近保存时间（ISO 8601） |
 
-周报按日期范围读取有内容的记录，由主进程通过系统保存对话框导出 Markdown。
+周报按日期范围读取有内容的记录，按四栏聚合工作项；主进程支持 Markdown / 纯文本导出和复制。
+待办从其它状态进入 `done` 时，主进程会把它作为一条完成项写入当天日报；同一标题当天不会重复追加。
 对应代码：`WorkLogRepository` / `WorkLogService`。
 
 ---

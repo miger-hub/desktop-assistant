@@ -1,4 +1,4 @@
-import type { HomeShortcutInput } from '../../shared/types'
+import type { HomeShortcutInput, WorkLogDraft } from '../../shared/types'
 import { IPC } from '../../shared/ipc'
 import type { AppContext } from '../context'
 import { registerHandler } from './handle'
@@ -11,7 +11,7 @@ export function registerHomeIpc(context: AppContext): void {
   registerHandler(IPC.homeShortcutRemove, (id: number) => home.remove(id))
 
   registerHandler(IPC.workLogList, (startDate: string, endDate: string) => workLogs.list(startDate, endDate))
-  registerHandler(IPC.workLogSave, (date: string, content: string) => workLogs.save(date, content))
+  registerHandler(IPC.workLogSave, (date: string, draft: WorkLogDraft) => workLogs.save(date, draft))
   registerHandler(IPC.workLogExportWeek, (startDate: string, endDate: string) =>
     workLogs.exportWeek(startDate, endDate)
   )

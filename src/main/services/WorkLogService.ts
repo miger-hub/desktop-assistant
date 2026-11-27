@@ -1,7 +1,14 @@
 import { writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { app, clipboard, dialog } from 'electron'
-import type { WorkLog } from '../../shared/types'
+import type { WorkLog, WorkLogDraft } from '../../shared/types'
+import {
+  appendWorkLogItem,
+  formatWorkLogMarkdown,
+  formatWorkLogText,
+  hasWorkLogContent,
+  type WorkLogLabels
+} from '../../shared/workLog'
 import { fromFsError, invalidArgument } from '../errors'
 import { t } from '../i18n'
 import type { WorkLogRepository } from '../repositories/WorkLogRepository'
@@ -15,17 +22,29 @@ function isDateKey(value: string): boolean {
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
 }
 
-/** 简单文本格式：不包含日期，只把有内容的日报按 1. / 2. / 3. 排列 */
-export function formatWorkLogText(logs: WorkLog[]): string {
-  return logs
-    .map((log) => log.content.trim())
-    .filter(Boolean)
-    .map((content, index) => {
-      const [first, ...rest] = content.split('\n')
-      const continuation = rest.map((line) => `   ${line}`).join('\n')
-      return `${index + 1}. ${first}${continuation ? `\n${continuation}` : ''}`
-    })
-    .join('\n')
+function workLogLabels(): WorkLogLabels {
+  return {
+    completed: t('home.reportCompleted'),
+    incomplete: t('home.reportIncomplete'),
+    issues: t('home.reportIssues'),
+    default: t('home.reportDefault')
+  }
+}
+
+function normalizeDraft(input: WorkLogDraft): WorkLogDraft {
+  const normalize = (value: string): string => String(value ?? '').trim()
+  const draft = {
+    content: normalize(input.content),
+    completed: normalize(input.completed),
+    incomplete: normalize(input.incomplete),
+    issues: normalize(input.issues)
+  }
+  for (const value of Object.values(draft)) {
+    if (value.length > CONTENT_MAX) {
+      throw invalidArgument(t('svc.workLogTooLong', { max: CONTENT_MAX }))
+    }
+  }
+  return draft
 }
 
 /** 每日工作记录 + 按周导出 */
@@ -39,17 +58,34 @@ export class WorkLogService {
     return this.workLogs.find(startDate, endDate)
   }
 
-  save(date: string, content: string): WorkLog {
+  save(date: string, input: WorkLogDraft | string): WorkLog {
     if (!isDateKey(date)) throw invalidArgument(t('svc.invalidWorkLogDate'))
-    const value = String(content ?? '').trim()
-    if (value.length > CONTENT_MAX) {
-      throw invalidArgument(t('svc.workLogTooLong', { max: CONTENT_MAX }))
-    }
-    return this.workLogs.upsert(date, value)
+    const draft =
+      typeof input === 'string'
+        ? normalizeDraft({ content: input, completed: '', incomplete: '', issues: '' })
+        : normalizeDraft(input)
+    return this.workLogs.upsert(date, draft)
+  }
+
+  /** 待办转成完成时调用；同一天同一标题只写入一次 */
+  addTodoCompletion(date: string, title: string): WorkLog {
+    if (!isDateKey(date)) throw invalidArgument(t('svc.invalidWorkLogDate'))
+    const current = this.workLogs.findByDate(date)
+    const completed = appendWorkLogItem(current?.completed ?? '', title)
+    return this.save(date, {
+      content: current?.content ?? '',
+      completed,
+      incomplete: current?.incomplete ?? '',
+      issues: current?.issues ?? ''
+    })
+  }
+
+  private logsWithContent(startDate: string, endDate: string): WorkLog[] {
+    return this.list(startDate, endDate).filter(hasWorkLogContent)
   }
 
   async exportWeek(startDate: string, endDate: string): Promise<{ path: string; count: number } | null> {
-    const logs = this.list(startDate, endDate).filter((log) => log.content.trim())
+    const logs = this.logsWithContent(startDate, endDate)
     if (logs.length === 0) throw invalidArgument(t('svc.noWorkLogsToExport'))
 
     const result = await dialog.showSaveDialog({
@@ -59,13 +95,13 @@ export class WorkLogService {
     })
     if (result.canceled || !result.filePath) return null
 
-    const lines = [
-      `# ${t('svc.workLogExportHeading', { start: startDate, end: endDate })}`,
-      '',
-      ...logs.flatMap((log) => [`## ${log.date}`, '', log.content, ''])
-    ]
+    const markdown = formatWorkLogMarkdown(
+      logs,
+      t('svc.workLogExportHeading', { start: startDate, end: endDate }),
+      workLogLabels()
+    )
     try {
-      await writeFile(result.filePath, lines.join('\n'), 'utf8')
+      await writeFile(result.filePath, markdown, 'utf8')
     } catch (error) {
       throw fromFsError(error, result.filePath)
     }
@@ -73,7 +109,7 @@ export class WorkLogService {
   }
 
   async exportWeekText(startDate: string, endDate: string): Promise<{ path: string; count: number } | null> {
-    const logs = this.list(startDate, endDate).filter((log) => log.content.trim())
+    const logs = this.logsWithContent(startDate, endDate)
     if (logs.length === 0) throw invalidArgument(t('svc.noWorkLogsToExport'))
 
     const result = await dialog.showSaveDialog({
@@ -84,7 +120,7 @@ export class WorkLogService {
     if (result.canceled || !result.filePath) return null
 
     try {
-      await writeFile(result.filePath, formatWorkLogText(logs), 'utf8')
+      await writeFile(result.filePath, formatWorkLogText(logs, workLogLabels()), 'utf8')
     } catch (error) {
       throw fromFsError(error, result.filePath)
     }
@@ -92,9 +128,9 @@ export class WorkLogService {
   }
 
   copyWeekText(startDate: string, endDate: string): { count: number } {
-    const logs = this.list(startDate, endDate).filter((log) => log.content.trim())
+    const logs = this.logsWithContent(startDate, endDate)
     if (logs.length === 0) throw invalidArgument(t('svc.noWorkLogsToExport'))
-    clipboard.writeText(formatWorkLogText(logs))
+    clipboard.writeText(formatWorkLogText(logs, workLogLabels()))
     return { count: logs.length }
   }
 }

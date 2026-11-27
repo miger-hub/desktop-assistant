@@ -6,7 +6,12 @@ import { describe, expect, it } from 'vitest'
 import { openDatabase } from '../src/main/database/connection'
 import { migration001 } from '../src/main/database/migrations/001-init'
 import { DatabaseService } from '../src/main/services/DatabaseService'
-import { latestSchemaVersion, migrate, readSchemaVersion } from '../src/main/database/migration'
+import {
+  latestSchemaVersion,
+  migrate,
+  migrations,
+  readSchemaVersion
+} from '../src/main/database/migration'
 
 async function createTempDatabasePath(): Promise<{ dir: string; filePath: string }> {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'desktop-assistant-db-'))
@@ -31,6 +36,29 @@ function createLegacyDatabase(filePath: string): void {
       new Date().toISOString()
     )
   })()
+  db.close()
+}
+
+/** 造一个跑到指定 migration 的数据库，用来验证后续升级 */
+function createDatabaseAtVersion(filePath: string, version: number): void {
+  const db = openDatabase(filePath)
+  db.exec(`
+    CREATE TABLE schema_migration (
+      version    INTEGER PRIMARY KEY,
+      name       TEXT NOT NULL,
+      applied_at TEXT NOT NULL
+    );
+  `)
+  for (const migration of migrations.filter((item) => item.version <= version)) {
+    db.transaction(() => {
+      migration.up(db)
+      db.prepare('INSERT INTO schema_migration (version, name, applied_at) VALUES (?, ?, ?)').run(
+        migration.version,
+        migration.name,
+        new Date().toISOString()
+      )
+    })()
+  }
   db.close()
 }
 
@@ -69,6 +97,40 @@ describe('数据库与 migration', () => {
     const database = new DatabaseService(':memory:')
     expect(migrate(database.connection)).toBe(0)
     database.close()
+  })
+
+  it('v11 给日报增加四栏，并保留旧默认栏内容', async () => {
+    const { dir, filePath } = await createTempDatabasePath()
+    createDatabaseAtVersion(filePath, 10)
+
+    const before = openDatabase(filePath)
+    before
+      .prepare('INSERT INTO work_log (date, content, updated_at) VALUES (?, ?, ?)')
+      .run('2026-11-20', '旧日报内容', new Date().toISOString())
+    before.close()
+
+    const database = new DatabaseService(filePath)
+    const columns = (
+      database.connection.prepare('PRAGMA table_info(work_log)').all() as Array<{ name: string }>
+    ).map((column) => column.name)
+    const row = database.connection
+      .prepare('SELECT content, completed, incomplete, issues FROM work_log WHERE date = ?')
+      .get('2026-11-20') as {
+      content: string
+      completed: string
+      incomplete: string
+      issues: string
+    }
+
+    expect(columns).toEqual(expect.arrayContaining(['completed', 'incomplete', 'issues']))
+    expect(row).toEqual({
+      content: '旧日报内容',
+      completed: '',
+      incomplete: '',
+      issues: ''
+    })
+    database.close()
+    await rm(dir, { recursive: true, force: true })
   })
 
   it('外键级联：删除工作区会清掉映射与待办', () => {

@@ -30,6 +30,9 @@
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
+    "@milkdown/crepe": "^7.23.0",
+    "@milkdown/kit": "^7.23.0",
+    "@milkdown/vue": "^7.23.0",
     "better-sqlite3": "^13.0.3",
     "fast-xml-parser": "^5.11.2",
     "fflate": "^0.8.3",

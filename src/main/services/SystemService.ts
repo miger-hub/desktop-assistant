@@ -21,6 +21,7 @@ import { MAX_APP_RESULTS, type AppService } from './AppService'
 import type { ClipboardService } from './ClipboardService'
 import type { MappingRepository } from '../repositories/MappingRepository'
 import type { NoteService } from './NoteService'
+import type { NoteDocumentService } from './NoteDocumentService'
 import type { PluginService } from '../plugins/PluginService'
 import type { TodoRepository } from '../repositories/TodoRepository'
 import type { WorkspaceRepository } from '../repositories/WorkspaceRepository'
@@ -84,6 +85,7 @@ export class SystemService {
     private readonly mappings: MappingRepository,
     private readonly todos: TodoRepository,
     private readonly notes: NoteService,
+    private readonly noteDocs: NoteDocumentService,
     private readonly plugins: PluginService,
     private readonly clipboard: ClipboardService,
     private readonly recents: RecentService,
@@ -464,6 +466,24 @@ export class SystemService {
         id: note.id,
         workspaceId: null,
         url: note.url || undefined
+      })
+    }
+
+    for (const note of await this.noteDocs.search(keyword)) {
+      if (!inWorkspace(note.workspaceId)) continue
+      results.push({
+        type: 'note',
+        title: note.title,
+        subtitle:
+          note.excerpt ||
+          (note.workspaceId === null
+            ? t('svc.noteFileLocation', { value: note.folderPath || t('svc.noteRootName') })
+            : t('svc.noteFileWorkspaceLocation', {
+                workspace: workspaceNames.get(note.workspaceId) ?? t('nav.workspace'),
+                folder: note.folderPath || t('svc.noteRootName')
+              })),
+        notePath: note.path,
+        workspaceId: note.workspaceId
       })
     }
 

@@ -1,9 +1,12 @@
-import type { WorkLog } from '../../shared/types'
+import type { WorkLog, WorkLogDraft } from '../../shared/types'
 import type { SqliteDatabase } from '../database/connection'
 
 interface WorkLogRow {
   date: string
   content: string
+  completed: string
+  incomplete: string
+  issues: string
   updated_at: string
 }
 
@@ -11,6 +14,9 @@ function toWorkLog(row: WorkLogRow): WorkLog {
   return {
     date: row.date,
     content: row.content,
+    completed: row.completed,
+    incomplete: row.incomplete,
+    issues: row.issues,
     updatedAt: row.updated_at
   }
 }
@@ -30,14 +36,26 @@ export class WorkLogRepository {
     return row ? toWorkLog(row) : null
   }
 
-  upsert(date: string, content: string): WorkLog {
+  upsert(date: string, draft: WorkLogDraft): WorkLog {
     this.db
       .prepare(
-        `INSERT INTO work_log (date, content, updated_at)
-         VALUES (?, ?, ?)
-         ON CONFLICT(date) DO UPDATE SET content = excluded.content, updated_at = excluded.updated_at`
+        `INSERT INTO work_log (date, content, completed, incomplete, issues, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)
+         ON CONFLICT(date) DO UPDATE SET
+           content = excluded.content,
+           completed = excluded.completed,
+           incomplete = excluded.incomplete,
+           issues = excluded.issues,
+           updated_at = excluded.updated_at`
       )
-      .run(date, content, new Date().toISOString())
+      .run(
+        date,
+        draft.content,
+        draft.completed,
+        draft.incomplete,
+        draft.issues,
+        new Date().toISOString()
+      )
     return this.findByDate(date)!
   }
 }

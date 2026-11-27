@@ -8,6 +8,10 @@ import type {
   ListFilesOptions,
   MappedDirectory,
   Note,
+  NoteDocument,
+  NoteDocumentCreateInput,
+  NoteDocumentPatch,
+  NoteDocumentTree,
   NoteInput,
   NotePatch,
   HomeShortcut,
@@ -35,6 +39,7 @@ import type {
   TodoPatch,
   TransferOptions,
   WorkLog,
+  WorkLogDraft,
   WindowToggleResult,
   WorkspaceDetail,
   WorkspaceInput,
@@ -157,6 +162,16 @@ export const IPC = {
   noteUpdate: 'note:update',
   noteRemove: 'note:remove',
   noteMarkLinkUsed: 'note:mark-link-used',
+  noteDocumentTree: 'note-document:tree',
+  noteDocumentRead: 'note-document:read',
+  noteDocumentCreate: 'note-document:create',
+  noteDocumentSave: 'note-document:save',
+  noteDocumentRemove: 'note-document:remove',
+  noteDocumentCreateFolder: 'note-document:create-folder',
+  noteDocumentRenameFolder: 'note-document:rename-folder',
+  noteDocumentRemoveFolder: 'note-document:remove-folder',
+  noteDocumentUploadAsset: 'note-document:upload-asset',
+  noteDocumentReveal: 'note-document:reveal',
   /** 主进程推送：全局搜索打开备忘链接后，首页常用链接需要刷新排序 */
   eventNoteLinkUsed: 'note:link-used',
 
@@ -250,7 +265,7 @@ export interface DesktopApi {
   /** 每日工作记录 */
   workLog: {
     list(startDate: string, endDate: string): Promise<WorkLog[]>
-    save(date: string, content: string): Promise<WorkLog>
+    save(date: string, draft: WorkLogDraft): Promise<WorkLog>
     exportWeek(startDate: string, endDate: string): Promise<{ path: string; count: number } | null>
     exportWeekText(startDate: string, endDate: string): Promise<{ path: string; count: number } | null>
     copyWeekText(startDate: string, endDate: string): Promise<{ count: number }>
@@ -277,6 +292,20 @@ export interface DesktopApi {
     markLinkUsed(id: number): Promise<void>
     /** 订阅链接使用变化，返回取消订阅的函数 */
     onLinkUsed(listener: () => void): () => void
+  }
+  /** 文件型 Markdown 笔记；正文和附件直接保存在 notes 目录 */
+  noteDocs: {
+    tree(): Promise<NoteDocumentTree>
+    read(path: string): Promise<NoteDocument>
+    create(input: NoteDocumentCreateInput): Promise<NoteDocument>
+    save(path: string, patch: NoteDocumentPatch): Promise<NoteDocument>
+    remove(path: string): Promise<void>
+    createFolder(parentPath: string, name: string): Promise<void>
+    renameFolder(path: string, name: string): Promise<string>
+    removeFolder(path: string): Promise<void>
+    /** 图片复制到当前笔记目录的 attachments/，返回 Markdown 相对路径 */
+    uploadAsset(path: string, fileName: string, data: ArrayBuffer | Uint8Array): Promise<{ src: string; name: string }>
+    reveal(path: string): Promise<void>
   }
   /** 工具插件（Phase 1：text / table 结果 + 可选选项） */
   plugins: {

@@ -79,7 +79,7 @@ export function createApi(): DesktopApi {
     },
     workLog: {
       list: (startDate, endDate) => call(IPC.workLogList, startDate, endDate),
-      save: (date, content) => call(IPC.workLogSave, date, content),
+      save: (date, draft) => call(IPC.workLogSave, date, draft),
       exportWeek: (startDate, endDate) => call(IPC.workLogExportWeek, startDate, endDate),
       exportWeekText: (startDate, endDate) => call(IPC.workLogExportWeekText, startDate, endDate),
       copyWeekText: (startDate, endDate) => call(IPC.workLogCopyWeekText, startDate, endDate)
@@ -107,6 +107,18 @@ export function createApi(): DesktopApi {
         ipcRenderer.on(IPC.eventNoteLinkUsed, handler)
         return () => ipcRenderer.removeListener(IPC.eventNoteLinkUsed, handler)
       }
+    },
+    noteDocs: {
+      tree: () => call(IPC.noteDocumentTree),
+      read: (path) => call(IPC.noteDocumentRead, path),
+      create: (input) => call(IPC.noteDocumentCreate, input),
+      save: (path, patch) => call(IPC.noteDocumentSave, path, patch),
+      remove: (path) => call(IPC.noteDocumentRemove, path),
+      createFolder: (parentPath, name) => call(IPC.noteDocumentCreateFolder, parentPath, name),
+      renameFolder: (path, name) => call(IPC.noteDocumentRenameFolder, path, name),
+      removeFolder: (path) => call(IPC.noteDocumentRemoveFolder, path),
+      uploadAsset: (path, fileName, data) => call(IPC.noteDocumentUploadAsset, path, fileName, data),
+      reveal: (path) => call(IPC.noteDocumentReveal, path)
     },
     plugins: {
       list: () => call(IPC.pluginList),

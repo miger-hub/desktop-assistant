@@ -46,11 +46,11 @@ describe('HomeService', () => {
 
 describe('WorkLogRepository', () => {
   it('按日期写入、覆盖和读取工作记录', () => {
-    context.workLogs.upsert('2026-11-20', '完成首页')
-    context.workLogs.upsert('2026-11-18', '整理搜索')
-    context.workLogs.upsert('2026-11-20', '完成首页与日历')
+    context.workLogs.save('2026-11-20', '完成首页')
+    context.workLogs.save('2026-11-18', '整理搜索')
+    context.workLogs.save('2026-11-20', '完成首页与日历')
 
-    const logs = context.workLogs.find('2026-11-18', '2026-11-20')
+    const logs = context.workLogs.list('2026-11-18', '2026-11-20')
     expect(logs.map((item) => item.date)).toEqual(['2026-11-18', '2026-11-20'])
     expect(logs[1].content).toBe('完成首页与日历')
   })

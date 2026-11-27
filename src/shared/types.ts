@@ -255,6 +255,8 @@ export interface SearchResult {
   workspaceId?: number | null
   /** 备忘的链接，搜索弹框里可以直接打开 */
   url?: string
+  /** 文件型笔记相对笔记根目录的路径 */
+  notePath?: string
   /** 已安装应用的图标（data URL，只有 `type` 为 app 时有），渲染进程直接当图片用 */
   iconUrl?: string
   /** 工具结果的 id（`type` 为 tool 时） */
@@ -279,6 +281,8 @@ export interface SearchNavigation {
   workspaceId?: number | null
   directoryId?: number | null
   noteId?: number
+  /** 文件型笔记相对笔记根目录的路径 */
+  notePath?: string
   /** 待办跳转时带的过滤关键字 */
   keyword?: string
   /** `kind` 为 path 时：要进入并高亮的文件 / 目录路径 */
@@ -369,12 +373,26 @@ export interface InstalledAppSummary {
   iconUrl: string | null
 }
 
-/** 每个自然日一条工作记录 */
+/** 每个自然日一条工作记录；各类别里每个非空行是一条工作项 */
 export interface WorkLog {
   /** YYYY-MM-DD */
   date: string
+  /** 「默认」栏；沿用旧字段名，升级前的日报内容会保留在这里 */
   content: string
+  /** 已完成工作项，每行一条 */
+  completed: string
+  /** 未完成工作项，每行一条 */
+  incomplete: string
+  /** 问题工作项，每行一条 */
+  issues: string
   updatedAt: string
+}
+
+export interface WorkLogDraft {
+  content: string
+  completed: string
+  incomplete: string
+  issues: string
 }
 
 /** 备忘：一段文本，可选带一个链接 */
@@ -401,6 +419,55 @@ export interface NoteInput {
 }
 
 export type NotePatch = Partial<NoteInput>
+
+/** 文件型笔记的目录；path 是相对笔记根目录的 POSIX 路径，根目录用空字符串 */
+export interface NoteFolder {
+  name: string
+  path: string
+  children: NoteFolder[]
+}
+
+/** 文件型笔记列表项，不包含 Markdown 正文 */
+export interface NoteDocumentSummary {
+  /** 相对笔记根目录的 POSIX 路径 */
+  path: string
+  title: string
+  /** 所属目录，根目录为空字符串 */
+  folderPath: string
+  workspaceId: number | null
+  excerpt: string
+  updatedAt: string
+}
+
+export interface NoteDocument extends NoteDocumentSummary {
+  content: string
+}
+
+export interface NoteDocumentTree {
+  folders: NoteFolder[]
+  notes: NoteDocumentSummary[]
+}
+
+export interface NoteDocumentCreateInput {
+  title: string
+  /** 新建到哪个目录；不传或空字符串表示根目录 */
+  folderPath?: string
+  workspaceId?: number | null
+  content?: string
+}
+
+export interface NoteDocumentPatch {
+  title?: string
+  workspaceId?: number | null
+  content?: string
+}
+
+export interface NoteHeading {
+  level: number
+  text: string
+  /** 标题在 Markdown 顶层标题序列中的下标，用来定位编辑器里的 DOM */
+  index: number
+}
 
 export interface BulkResult {
   succeeded: string[]

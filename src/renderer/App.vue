@@ -7,6 +7,7 @@ import TitleBar from './components/TitleBar.vue'
 import ToastStack from './components/ToastStack.vue'
 import { uiScaleFactor, useSettings } from './stores/settings'
 import { useNotes } from './stores/notes'
+import { useNoteDocuments } from './stores/noteDocuments'
 import { useTools } from './stores/tools'
 import { useShortcuts } from './stores/shortcuts'
 import { useOperations } from './stores/operations'
@@ -38,6 +39,7 @@ const operations = useOperations()
 const shortcuts = useShortcuts()
 const todos = useTodos()
 const notes = useNotes()
+const noteDocs = useNoteDocuments()
 const tools = useTools()
 /**
  * 当前这页是不是「独立搜索窗口」。
@@ -214,7 +216,14 @@ async function applySearchNavigation(target: SearchNavigation): Promise<void> {
     return
   }
 
-  if (target.noteId != null) notes.focus(target.noteId)
+  if (target.notePath) {
+    noteDocs.focus(target.notePath)
+  } else if (target.noteId != null) {
+    noteDocs.showMemo()
+    notes.focus(target.noteId)
+  } else {
+    noteDocs.showDocuments()
+  }
   ui.setView('notes')
 }
 

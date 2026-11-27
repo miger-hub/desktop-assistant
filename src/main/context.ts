@@ -10,6 +10,7 @@ import type { DatabaseService } from './services/DatabaseService'
 import type { FileService } from './services/FileService'
 import type { HomeService } from './services/HomeService'
 import type { NoteService } from './services/NoteService'
+import type { NoteDocumentService } from './services/NoteDocumentService'
 import type { OperationService } from './services/OperationService'
 import type { PluginService } from './plugins/PluginService'
 import type { RuleService } from './services/RuleService'
@@ -62,6 +63,8 @@ export interface AppContext {
   /** 剪贴板历史（内存中，退出应用即清空） */
   clipboard: ClipboardService
   notes: NoteService
+  /** 文件型 Markdown 笔记 */
+  noteDocs: NoteDocumentService
   /** 工具插件（内置 + 已安装） */
   plugins: PluginService
   operations: OperationService

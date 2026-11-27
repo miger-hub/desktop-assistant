@@ -3,6 +3,7 @@ import { invalidArgument, notFound } from '../errors'
 import { t } from '../i18n'
 import type { TodoRepository } from '../repositories/TodoRepository'
 import type { WorkspaceRepository } from '../repositories/WorkspaceRepository'
+import type { WorkLogService } from './WorkLogService'
 
 const STATUSES: TodoStatus[] = ['todo', 'doing', 'done']
 const PRIORITIES: TodoPriority[] = ['low', 'normal', 'high']
@@ -33,10 +34,19 @@ function normalizePriority(priority: TodoPriority | undefined, fallback: TodoPri
   return priority
 }
 
+function localDateKey(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export class TodoService {
   constructor(
     private readonly todos: TodoRepository,
-    private readonly workspaces: WorkspaceRepository
+    private readonly workspaces: WorkspaceRepository,
+    private readonly workLogs?: Pick<WorkLogService, 'addTodoCompletion'>,
+    private readonly clock: () => Date = () => new Date()
   ) {}
 
   list(filter: TodoFilter = {}): Todo[] {
@@ -75,6 +85,10 @@ export class TodoService {
 
     const updated = this.todos.update(id, next)
     if (!updated) throw notFound(t('svc.notExist', { what: t('svc.todo'), value: id }))
+    // 从其它状态进入完成时记一条当天完成项；已经完成再保存不会重复追加。
+    if (patch.status === 'done' && current.status !== 'done') {
+      this.workLogs?.addTodoCompletion(localDateKey(this.clock()), updated.title)
+    }
     return updated
   }
 

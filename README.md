@@ -4,15 +4,16 @@
 
 核心能力：
 
-- **Home**：一页查看常用系统应用、待办、备忘链接与工作日历；日历支持填写日报并按周导出 Markdown
+- **Home**：一页查看常用系统应用、待办、备忘链接与工作日历；日报按完成 / 未完成 / 问题 / 默认分栏，周报汇总工作项并支持显示、复制和导出
 - **Workspace**：逻辑分组，把多个真实目录映射到一个工作区
 - **Desktop**：整理桌面文件（列表 / 打开 / 单条与批量重命名 / 移动到映射目录 / 回收站）
 - **Rules（自动整理）**：配置「按扩展名 / 名称关键字 → 移动到目标目录」的规则，先预览再执行；执行结果可撤销
 - **Todo**：待办管理（工作区 / 状态 / 优先级 / 截止日期 / 搜索，点击归属标签跳回对应工作区；添加与搜索区固定在页面顶部）
-- **Notes（备忘）**：随手记文本与链接，支持一键复制内容 / 链接、用浏览器打开链接，并参与全局搜索
+- **Notes（笔记 / 备忘）**：文件型 Markdown 笔记使用 Milkdown 单页所见即所得编辑，支持目录、文章目录（TOC）、图片附件和工作区标记；
+  “备忘”标签保留原有随手文本 / 链接功能。笔记和错误处理见下文「笔记文件」
 - **Clipboard（剪贴板历史）**：记录最近复制的文本与文件（默认 10 条，可在设置里改，上限 50），支持再次复制；只在内存里，退出应用即清空
 - **快捷入口**：把常用文件、目录、工作区置顶到侧边栏，文件列表与工作区上都有「置顶」按钮
-- **全局搜索**：`Ctrl/Cmd + K` 打开搜索（默认是**独立的小窗口**，不显示主界面、失焦自动收起），搜本地已安装的应用（带系统图标，回车直接启动）、文件名、待办、备忘、工作区、映射目录；
+- **全局搜索**：`Ctrl/Cmd + K` 打开搜索（默认是**独立的小窗口**，不显示主界面、失焦自动收起），搜本地已安装的应用（带系统图标，回车直接启动）、文件名、待办、笔记、备忘、工作区、映射目录；
   支持按类型与归属工作区过滤，输入为空时显示「最近打开」；这里只记录从搜索结果打开的文件、目录和备忘，连续输入有防抖（默认 200ms）、
   结果默认展示 20 条（都能在设置里改，超出的点「展开」查看更多）；关掉弹框后默认保留上次的关键字，
   也可以在设置里改成「关闭搜索后清空关键字与结果」
@@ -33,7 +34,7 @@ Vue 3 UI (Renderer)
 Preload API（contextIsolation + sandbox，不暴露 fs / process / ipcRenderer）
       ↓  IPC（统一 Result 信封，错误带错误码）
 Electron Main
-  ├── services/    业务层：HomeService / WorkLogService / FileService / WorkspaceService / TodoService / RuleService / ShortcutService / ClipboardService / NoteService / RecentService / OperationService / WatcherService / TrayService / SettingsService / SystemService / DatabaseService
+  ├── services/    业务层：HomeService / WorkLogService / FileService / WorkspaceService / TodoService / RuleService / ShortcutService / ClipboardService / NoteService / NoteDocumentService / RecentService / OperationService / WatcherService / TrayService / SettingsService / SystemService / DatabaseService
   ├── plugins/     PluginService / PluginRepository / manifest 校验（只管理安装，不执行插件代码）
   ├── repositories/ 只有 SQL 读写：HomeShortcut / WorkLog / Workspace / Mapping / Todo / Rule / Shortcut / Note / Recent / Operation / Setting
   └── database/    连接 + migration + 升级前备份
@@ -43,6 +44,7 @@ SQLite（userData/data.db） + 本地文件系统
 
 - Renderer 不直接访问 Node、fs、sqlite；所有能力通过 `src/shared/ipc.ts` 定义的业务化 API。
 - 文件不进入数据库，数据库只存首页应用 / 日报 / Workspace / 目录映射 / Todo / 规则 / 快捷入口 / 备忘 / 搜索最近打开 / 操作历史 / Setting。
+- 文件型笔记的正文、目录和图片都直接保存在本地文件系统；SQLite 不保存笔记正文。
 - 结构变化只新增 migration（`src/main/database/migrations/`），不修改历史版本；
   升级前自动备份（`VACUUM INTO`），数据库版本高于程序时拒绝启动，详见 [DATABASE.md](DATABASE.md)。
 - 文件操作集中在 `FileService`，冲突默认不覆盖，删除默认走系统回收站，跨磁盘移动自动降级为复制 + 删除。
@@ -103,6 +105,8 @@ pnpm run test:node  # 本机 Node >= 22 时可以直接跑
 ## 数据位置
 
 - 数据库：`<userData>/data.db`（Linux 一般是 `~/.config/desktop-assistant/data.db`；应用更名后会优先沿用已有 `Desktop Assistant` / `desktop-assistant` 旧目录，避免升级丢失数据）
+- 笔记：`<userData>/notes/`。每篇笔记是一个 `.md` 文件，工作区标记写在文件 frontmatter 的 `workmetaWorkspaceId`；
+  图片复制到该笔记同目录的 `attachments/`，Markdown 中保存相对路径。删除笔记或目录时走系统回收站。
 - 备份：`<userData>/backups/`（升级前自动备份 + 设置页手动备份，最多保留 5 份）
 - 设置里可以直接打开该目录；数据库不放在项目目录中。
 
@@ -112,7 +116,7 @@ pnpm run test:node  # 本机 Node >= 22 时可以直接跑
 | --- | --- |
 | `Ctrl/Cmd + 1~8` | 切换 Home / Workspace / Desktop / Todo / Notes / Clipboard / Rules / Tools |
 | `Ctrl/Cmd + ,` | 打开 Settings（与菜单数字快捷键分开） |
-| `Ctrl/Cmd + K` | 打开全局搜索弹框（应用 / 文件 / 目录 / 工作区 / 待办 / 备忘，可按类型与归属过滤；搜到应用回车直接启动） |
+| `Ctrl/Cmd + K` | 打开全局搜索弹框（应用 / 文件 / 目录 / 工作区 / 待办 / 笔记 / 备忘，可按类型与归属过滤；搜到应用回车直接启动） |
 | `Ctrl/Cmd + +` / `Ctrl/Cmd + -` / `Ctrl/Cmd + 0` | 放大 / 缩小 / 恢复界面大小 |
 | `Ctrl/Cmd + F` | 过滤当前文件列表（只作用于当前目录，Esc 退出） |
 | `Ctrl/Cmd + ←↑→↓` | 板块间跳转：工作区列表 / 映射目录 / 文件列表（跳过去之后方向键只作用于该板块，焦点板块有描边） |

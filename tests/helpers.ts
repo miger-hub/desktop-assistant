@@ -23,6 +23,7 @@ import { SettingsService } from '../src/main/services/SettingsService'
 import { ShortcutService } from '../src/main/services/ShortcutService'
 import { TodoService } from '../src/main/services/TodoService'
 import { WorkspaceService } from '../src/main/services/WorkspaceService'
+import { WorkLogService } from '../src/main/services/WorkLogService'
 
 /** 测试统一使用临时目录，不触碰真实用户文件 */
 export async function createTempDir(): Promise<string> {
@@ -41,7 +42,7 @@ export interface TestContext {
   rules: RuleService
   shortcuts: ShortcutService
   home: HomeService
-  workLogs: WorkLogRepository
+  workLogs: WorkLogService
   notes: NoteService
   recents: RecentService
   operations: OperationService
@@ -62,6 +63,7 @@ export function createTestContext(): TestContext {
   const shortcutRepository = new ShortcutRepository(connection)
   const homeShortcutRepository = new HomeShortcutRepository(connection)
   const workLogRepository = new WorkLogRepository(connection)
+  const workLogs = new WorkLogService(workLogRepository)
   const noteRepository = new NoteRepository(connection)
   const recentRepository = new RecentRepository(connection)
 
@@ -73,11 +75,11 @@ export function createTestContext(): TestContext {
     database,
     files,
     workspaces,
-    todos: new TodoService(todoRepository, workspaceRepository),
+    todos: new TodoService(todoRepository, workspaceRepository, workLogs),
     rules: new RuleService(ruleRepository, files, operations),
     shortcuts: new ShortcutService(shortcutRepository, workspaceRepository, files),
     home: new HomeService(homeShortcutRepository, files),
-    workLogs: workLogRepository,
+    workLogs,
     notes: new NoteService(noteRepository),
     recents: new RecentService(recentRepository),
     operations,

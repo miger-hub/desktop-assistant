@@ -48,6 +48,19 @@ describe('TodoService', () => {
     expect(updated.workspaceId).toBe(workspace.id)
   })
 
+  it('待办进入完成状态时自动写入当天日报完成栏', () => {
+    const todo = context.todos.create({ title: '整理发布说明' })
+    context.todos.update(todo.id, { status: 'done' })
+
+    const now = new Date()
+    const today = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0')
+    ].join('-')
+    expect(context.workLogs.list(today, today)[0].completed).toBe('整理发布说明')
+  })
+
   it('可以把待办从工作区移到收件箱', async () => {
     const workspace = await context.workspaces.create({ name: 'Dev' })
     const todo = context.todos.create({ title: 'b', workspaceId: workspace.id })
